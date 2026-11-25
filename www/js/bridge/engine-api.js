@@ -97,5 +97,9 @@ export const engineApi = {
 
   renderPdfPage(path, pageIndex, maxWidth = 1400) {
     return target.renderPdfPage({ path, pageIndex, maxWidth });
+  },
+
+  userDataAction(action, payload = {}) {
+    return target.userDataAction({ action, payload });
   }
 };
