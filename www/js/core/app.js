@@ -78,6 +78,13 @@ async function bootstrap() {
   libraryView.init();
 
   await catalogRepo.loadInitial();
+
+  // Em retrato no Y700, inicia recolhido se já houver módulos no catálogo
+  if (window.innerWidth < 760 && store.state.modules.length > 0) {
+    const sidebar = $('sidebar-pane');
+    if (sidebar) sidebar.classList.add('collapsed');
+  }
+
   await refreshSystemStatus();
 
   document.addEventListener('visibilitychange', () => {
