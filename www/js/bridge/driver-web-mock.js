@@ -45,6 +45,13 @@ let mockModules = [
     abbr: 'ARC-TW', lang: 'PT', description: 'Bíblia em texto plano theWord (.ont)', sizeBytes: 4423680,
     hasStrong: false, hasMorph: false, rtl: false, locked: false, tablesCsv: '',
     coverageReady: false, favorite: false
+  },
+  {
+    id: 'm7', path: '/storage/3F08-9662/Livros/Hermeneutica.pdf', fileName: 'Hermeneutica.pdf',
+    format: 'pdf', type: 'document', isSqlite: false, title: 'Princípios de Hermenêutica Bíblica',
+    abbr: 'Hermen', lang: 'PT', description: 'Documento PDF no microSD', sizeBytes: 18874368,
+    hasStrong: false, hasMorph: false, rtl: false, locked: false, tablesCsv: '',
+    coverageReady: false, favorite: false
   }
 ];
 
@@ -137,9 +144,4 @@ export const webMockDriver = {
       queryMs: 2,
       indexedNow: false,
       verses: [
-        { verse: 1, raw: `Texto simulado theWord (.ont) — Livro ${bookId}, Capítulo ${chapter}, Versículo 1.` },
-        { verse: 2, raw: '<FR>Palavras simuladas em destaque<Fr> com <FI>itálico editorial<Fi>.' }
-      ]
-    };
-  }
-};
+        { verse: 1, raw: `Texto simulado
