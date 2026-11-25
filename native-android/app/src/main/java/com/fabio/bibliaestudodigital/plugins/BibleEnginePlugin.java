@@ -57,6 +57,15 @@ public class BibleEnginePlugin extends Plugin {
         return db;
     }
 
+    private synchronized void closePool() {
+        for (SQLiteDatabase db : dbPool.values()) {
+            if (db != null && db.isOpen()) {
+                try { db.close(); } catch (Exception ignored) {}
+            }
+        }
+        dbPool.clear();
+    }
+
     private static String formatDeviceModel() {
         String mfg = Build.MANUFACTURER != null ? Build.MANUFACTURER.trim() : "";
         String model = Build.MODEL != null ? Build.MODEL.trim() : "";
@@ -301,15 +310,14 @@ public class BibleEnginePlugin extends Plugin {
     }
 
     @Override
+    protected void handleOnStop() {
+        closePool();
+        super.handleOnStop();
+    }
+
+    @Override
     protected void handleOnDestroy() {
-        synchronized (this) {
-            for (SQLiteDatabase db : dbPool.values()) {
-                if (db != null && db.isOpen()) {
-                    try { db.close(); } catch (Exception ignored) {}
-                }
-            }
-            dbPool.clear();
-        }
+        closePool();
         if (catalogDb != null) catalogDb.close();
         executor.shutdownNow();
         super.handleOnDestroy();
