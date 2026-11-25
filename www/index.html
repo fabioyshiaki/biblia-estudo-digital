@@ -6,6 +6,7 @@
   <title>Bíblia de Estudo Digital</title>
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/library.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -18,76 +19,112 @@
         </svg>
         <div>
           <h1 class="brand-title">Bíblia de Estudo Digital</h1>
-          <span class="brand-sub" id="env-badge">Onda 0 · Fundação Y700</span>
+          <span class="brand-sub" id="env-badge">Onda 1 · Biblioteca UFS 3.1</span>
         </div>
       </div>
 
-      <div class="theme-switcher" role="group" aria-label="Tema de leitura IPS">
-        <button class="theme-btn" data-theme-set="paper">Papel</button>
-        <button class="theme-btn" data-theme-set="sepia">Sépia</button>
-        <button class="theme-btn" data-theme-set="charcoal">Carvão</button>
-        <button class="theme-btn" data-theme-set="night">Noturno</button>
+      <div class="topbar-right">
+        <button id="btn-toggle-sidebar" class="btn-ghost">Pastas e Coleções</button>
+        <div class="theme-switcher" role="group" aria-label="Tema de leitura IPS">
+          <button class="theme-btn" data-theme-set="paper">Papel</button>
+          <button class="theme-btn" data-theme-set="sepia">Sépia</button>
+          <button class="theme-btn" data-theme-set="charcoal">Carvão</button>
+          <button class="theme-btn" data-theme-set="night">Noturno</button>
+        </div>
       </div>
     </header>
 
-    <main class="workspace">
-      <section class="pane pane-left" aria-label="Diagnóstico e Biblioteca">
-        <div class="section-block">
+    <main class="library-workspace">
+      <aside id="sidebar-pane" class="pane library-sidebar">
+        <section class="section-block">
           <div class="section-head">
-            <h2>1. Permissão e Hardware (Y700)</h2>
-            <button id="btn-refresh-diag" class="btn-ghost">Atualizar</button>
+            <h2>Sistema & Permissão</h2>
           </div>
           <div id="perm-banner" class="notice-row">
-            <span id="perm-status">Verificando acesso aos arquivos...</span>
-            <button id="btn-grant-perm" class="btn-primary hidden">Conceder Acesso</button>
+            <span id="perm-status">Verificando acesso...</span>
+            <button id="btn-grant-perm" class="btn-primary hidden">Conceder</button>
           </div>
-          <dl id="diag-grid" class="meta-grid"></dl>
-        </div>
+          <p id="diag-line" class="muted-text"></p>
+        </section>
 
-        <div class="section-block">
+        <section class="section-block">
           <div class="section-head">
-            <h2>2. Pasta de Módulos (UFS 3.1 / microSD)</h2>
+            <h2>Pastas da Biblioteca</h2>
           </div>
           <div id="volume-chips" class="chip-row"></div>
+          <div id="folder-list"></div>
           <div class="input-row">
             <input
-              id="input-folder"
+              id="input-new-folder"
               type="text"
-              placeholder="/storage/emulated/0/mysword"
+              placeholder="/storage/3F08-9662/Livros"
               autocomplete="off"
               spellcheck="false"
             />
-            <button id="btn-scan" class="btn-primary">Escanear</button>
+            <button id="btn-add-folder" class="btn-ghost">Adicionar</button>
           </div>
-          <p id="scan-summary" class="muted-text">
-            Selecione um volume ou informe o caminho da pasta com seus módulos.
-          </p>
-        </div>
+          <div class="btn-row">
+            <button id="btn-sync-catalog" class="btn-primary">Sincronizar Biblioteca</button>
+            <button id="btn-force-sync" class="btn-ghost" title="Re-ler cabeçalhos de todos os arquivos">Reindexar</button>
+          </div>
+          <p id="sync-status" class="muted-text"></p>
+        </section>
 
-        <div class="section-block">
+        <section class="section-block">
           <div class="section-head">
-            <h2>3. Inspeção de Módulo (Pool LRU)</h2>
+            <h2>Coleções (Module Sets)</h2>
           </div>
-          <div id="inspect-box" class="inspect-box muted-text">
-            Toque em qualquer módulo SQLite na lista ao lado (inclusive acima de 600 MB) para medir o tempo real de abertura sem cópia.
+          <div id="set-list"></div>
+          <div class="input-row">
+            <input id="input-new-set" type="text" placeholder="Nova coleção (ex.: Exegese NT)" />
+            <button id="btn-create-set" class="btn-ghost">Criar</button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="pane pane-right" aria-label="Lista de Módulos Detectados">
-        <div class="list-toolbar">
-          <input
-            id="input-filter"
-            type="search"
-            placeholder="Filtrar por nome ou formato (mysword, pdf, epub, theword...)"
-          />
-          <button id="btn-sort-size" class="btn-ghost" title="Ordenar por tamanho">
-            Maiores primeiro
-          </button>
+        <section class="section-block">
+          <div class="section-head">
+            <h2>Mapa de Cobertura</h2>
+            <button id="btn-build-coverage" class="btn-ghost">Mapear Livros</button>
+          </div>
+          <p id="coverage-status" class="muted-text">
+            Mapeia quais Bíblias e comentários cobrem cada livro (base do Resource Guide).
+          </p>
+          <div class="input-row" style="margin-top:8px;">
+            <select id="select-coverage-book" class="ui-select" style="flex:1;"></select>
+          </div>
+          <div id="coverage-result" class="coverage-preview"></div>
+        </section>
+      </aside>
+
+      <section class="library-main" aria-label="Catálogo de Módulos">
+        <div class="library-controls">
+          <div class="list-toolbar">
+            <input
+              id="input-search-lib"
+              type="search"
+              placeholder="Buscar título, sigla, idioma ou arquivo nos 593+ módulos..."
+            />
+            <select id="select-sort-lib" class="ui-select" aria-label="Ordenação">
+              <option value="favorite">Favoritos / A–Z</option>
+              <option value="size">Maiores primeiro</option>
+              <option value="title">Ordem A–Z</option>
+            </select>
+          </div>
+          <div class="library-meta-row">
+            <span id="lib-count-badge">Carregando catálogo...</span>
+          </div>
+          <div id="type-chips" class="chip-row" style="margin-bottom:0;"></div>
         </div>
-        <div id="format-counts" class="chip-row"></div>
-        <div id="module-list" class="module-list">
-          <p class="empty-state">Nenhum módulo listado ainda.</p>
+
+        <div id="set-edit-banner" class="set-edit-banner hidden">
+          <span id="set-edit-label"></span>
+          <button id="btn-toggle-set-edit" class="btn-primary">Concluir edição</button>
+        </div>
+
+        <div id="virtual-module-list" class="vlist-viewport"></div>
+
+        <div id="inspector-bar" class="inspector-bar">
+          <span class="muted-text">Toque em qualquer módulo na lista para ver os metadados reais e testar a abertura no Pool LRU.</span>
         </div>
       </section>
     </main>
