@@ -1,0 +1,90 @@
+/* PDF, EPUB e Modo Noturno Inteligente */
+.pdf-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pdf-page-input {
+  width: 60px;
+  padding: 6px 8px;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.pdf-stage { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+.pdf-page-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  transition: filter var(--transition-fast);
+}
+.pdf-page-img.pdf-night-mode { filter: invert(0.88) hue-rotate(180deg) contrast(0.96); }
+.pdf-page-img.pdf-sepia-mode { filter: sepia(0.24) brightness(0.96); }
+.pdf-footer-nav {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+.book-resume-bar { margin-bottom: var(--space-3); }
+
+/* Grifos em 5 cores e indicador de nota */
+.verse-item[data-hl="amber"] { background: rgba(217, 155, 38, 0.22); }
+.verse-item[data-hl="sage"] { background: rgba(74, 158, 108, 0.22); }
+.verse-item[data-hl="sky"] { background: rgba(66, 138, 214, 0.22); }
+.verse-item[data-hl="rose"] { background: rgba(208, 92, 114, 0.22); }
+.verse-item[data-hl="violet"] { background: rgba(148, 108, 212, 0.22); }
+.verse-note-dot { border: 0; background: transparent; color: var(--accent); font-size: 0.78em; margin-left: 6px; cursor: pointer; padding: 0 3px; }
+
+.hl-palette { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hl-label { font-size: 11.5px; color: var(--text-secondary); }
+.hl-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.hl-dot.active { border-color: var(--text-primary); transform: scale(1.1); }
+.hl-dot-amber { background: #D99B26; }
+.hl-dot-sage { background: #4A9E6C; }
+.hl-dot-sky { background: #428AD6; }
+.hl-dot-rose { background: #D05C72; }
+.hl-dot-violet { background: #946CD4; }
+.hl-clear-btn { border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font-size: 11px; padding: 2px 7px; border-radius: var(--radius-sm); cursor: pointer; }
+
+/* Notas, Recortes, Busca e IA */
+.study-inline-bar { display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-3); flex-wrap: wrap; }
+.study-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+}
+.study-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.study-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.study-ref-link { border: 0; background: transparent; color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 0; text-align: left; cursor: pointer; }
+.study-note-body { font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.study-clip-quote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--bg-base); font-family: var(--font-serif); font-size: 14px; line-height: 1.55; }
+.search-hit { background: rgba(217, 155, 38, 0.35); color: inherit; padding: 0 2px; border-radius: 2px; }
+.ai-log { display: flex; flex-direction: column; gap: 10px; }
+.ai-msg { padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-base); }
+.ai-msg-user { border-left: 3px solid var(--accent); }
+.ai-msg-error { border-left: 3px solid var(--warn); }
+.study-article h3, .study-article h4 { margin: 10px 0 6px; font-family: var(--font-serif); }
+.study-article ul { margin: 6px 0 8px 18px; padding: 0; }
+.study-article code { font-family: var(--font-mono); font-size: 0.9em; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
