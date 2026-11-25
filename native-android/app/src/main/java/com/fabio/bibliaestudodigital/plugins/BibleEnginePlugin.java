@@ -28,6 +28,7 @@ public class BibleEnginePlugin extends Plugin {
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private CatalogDatabase catalogDb;
     private UserDataDatabase userDataDb;
+    private SearchEngine searchEngine;
 
     private final Map<String, SQLiteDatabase> dbPool =
         new LinkedHashMap<String, SQLiteDatabase>(16, 0.75f, true) {
@@ -48,6 +49,7 @@ public class BibleEnginePlugin extends Plugin {
     public void load() {
         catalogDb = new CatalogDatabase(getContext());
         userDataDb = new UserDataDatabase(getContext());
+        searchEngine = new SearchEngine(getContext());
     }
 
     private synchronized SQLiteDatabase getReadOnlyDb(String path) {
@@ -118,10 +120,10 @@ public class BibleEnginePlugin extends Plugin {
                 try (Cursor c = memDb.rawQuery("SELECT sqlite_version()", null)) {
                     if (c.moveToFirst()) ret.put("sqliteVersion", c.getString(0));
                 }
-                boolean fts5 = false;
-                try { memDb.execSQL("CREATE VIRTUAL TABLE _t USING fts5(content)"); fts5 = true; }
+                boolean fts4 = false;
+                try { memDb.execSQL("CREATE VIRTUAL TABLE _t USING fts4(content)"); fts4 = true; }
                 catch (Exception ignored) {}
-                ret.put("fts5Supported", fts5);
+                ret.put("fts5Supported", fts4);
             } catch (Exception e) {
                 ret.put("sqliteVersion", "erro");
                 ret.put("fts5Supported", false);
@@ -333,11 +335,8 @@ public class BibleEnginePlugin extends Plugin {
         String path = call.getString("path");
         if (path == null || path.isEmpty()) { call.reject("path obrigatório."); return; }
         executor.execute(() -> {
-            try {
-                call.resolve(EpubReader.getInfo(path));
-            } catch (Exception e) {
-                call.reject("Erro ao abrir EPUB: " + e.getMessage());
-            }
+            try { call.resolve(EpubReader.getInfo(path)); }
+            catch (Exception e) { call.reject("Erro ao abrir EPUB: " + e.getMessage()); }
         });
     }
 
@@ -347,11 +346,8 @@ public class BibleEnginePlugin extends Plugin {
         Integer index = call.getInt("chapterIndex");
         if (path == null || index == null) { call.reject("path e chapterIndex obrigatórios."); return; }
         executor.execute(() -> {
-            try {
-                call.resolve(EpubReader.readChapter(path, index));
-            } catch (Exception e) {
-                call.reject("Erro ao ler capítulo EPUB: " + e.getMessage());
-            }
+            try { call.resolve(EpubReader.readChapter(path, index)); }
+            catch (Exception e) { call.reject("Erro ao ler capítulo EPUB: " + e.getMessage()); }
         });
     }
 
@@ -360,11 +356,8 @@ public class BibleEnginePlugin extends Plugin {
         String path = call.getString("path");
         if (path == null || path.isEmpty()) { call.reject("path obrigatório."); return; }
         executor.execute(() -> {
-            try {
-                call.resolve(PdfPageReader.getInfo(path));
-            } catch (Exception e) {
-                call.reject("Erro ao abrir PDF: " + e.getMessage());
-            }
+            try { call.resolve(PdfPageReader.getInfo(path)); }
+            catch (Exception e) { call.reject("Erro ao abrir PDF: " + e.getMessage()); }
         });
     }
 
@@ -375,30 +368,47 @@ public class BibleEnginePlugin extends Plugin {
         int maxWidth = call.getInt("maxWidth", 1400);
         if (path == null || pageIndex == null) { call.reject("path e pageIndex obrigatórios."); return; }
         executor.execute(() -> {
-            try {
-                call.resolve(PdfPageReader.renderPage(path, pageIndex, maxWidth));
-            } catch (Exception e) {
-                call.reject("Erro ao renderizar página PDF: " + e.getMessage());
-            }
+            try { call.resolve(PdfPageReader.renderPage(path, pageIndex, maxWidth)); }
+            catch (Exception e) { call.reject("Erro ao renderizar página PDF: " + e.getMessage()); }
         });
     }
 
     @PluginMethod
     public void userDataAction(PluginCall call) {
         String action = call.getString("action");
-        if (action == null || action.isEmpty()) {
-            call.reject("action obrigatório.");
-            return;
-        }
+        if (action == null || action.isEmpty()) { call.reject("action obrigatório."); return; }
         JSObject payload = call.getObject("payload");
         final JSObject safePayload = payload != null ? payload : new JSObject();
         executor.execute(() -> {
-            try {
-                call.resolve(userDataDb.dispatch(action, safePayload));
-            } catch (Exception e) {
-                call.reject("Erro em user_data.db (" + action + "): " + e.getMessage());
-            }
+            try { call.resolve(userDataDb.dispatch(action, safePayload)); }
+            catch (Exception e) { call.reject("Erro em user_data.db (" + action + "): " + e.getMessage()); }
         });
+    }
+
+    @PluginMethod
+    public void searchModules(PluginCall call) {
+        String query = call.getString("query", "");
+        JSArray moduleIds = call.getArray("moduleIds");
+        int limit = call.getInt("limit", 80);
+        executor.execute(() -> {
+            try { call.resolve(searchEngine.search(catalogDb, query, moduleIds, limit)); }
+            catch (Exception e) { call.reject("Erro na busca: " + e.getMessage()); }
+        });
+    }
+
+    @PluginMethod
+    public void indexModuleForSearch(PluginCall call) {
+        String moduleId = call.getString("moduleId");
+        if (moduleId == null || moduleId.isEmpty()) { call.reject("moduleId obrigatório."); return; }
+        executor.execute(() -> {
+            try { call.resolve(searchEngine.indexBibleModule(catalogDb, moduleId)); }
+            catch (Exception e) { call.reject("Erro ao indexar módulo: " + e.getMessage()); }
+        });
+    }
+
+    @PluginMethod
+    public void getSearchIndexStats(PluginCall call) {
+        executor.execute(() -> call.resolve(searchEngine.getStats()));
     }
 
     @Override
@@ -414,6 +424,7 @@ public class BibleEnginePlugin extends Plugin {
         EpubReader.clearCache();
         if (catalogDb != null) catalogDb.close();
         if (userDataDb != null) userDataDb.close();
+        if (searchEngine != null) searchEngine.close();
         executor.shutdownNow();
         super.handleOnDestroy();
     }
