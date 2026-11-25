@@ -43,7 +43,7 @@ function norm(str) {
 
 function canOpenInReader(mod) {
   if (!mod || mod.locked || !moduleReader.isSupported(mod)) return false;
-  return ['bible', 'commentary', 'dictionary', 'book'].includes(mod.type);
+  return ['bible', 'commentary', 'dictionary', 'book', 'document'].includes(mod.type);
 }
 
 function openModuleInReader(mod) {
@@ -69,7 +69,7 @@ function openModuleInReader(mod) {
     return;
   }
 
-  if (mod.type === 'book') {
+  if (mod.type === 'book' || mod.type === 'document') {
     store.setActiveModule('book', mod.id);
     store.setStudyTab('book');
     store.setViewMode('reader');
@@ -279,9 +279,10 @@ async function selectAndInspect(mod) {
   };
 
   if (!mod.isSqlite) {
-    renderBar(
-      `Arquivo: ${mod.path}\nTipo: ${TYPE_LABELS[mod.type] || mod.type} (leitor dedicado entra na Onda 2).`
-    );
+    const status = canOpenInReader(mod)
+      ? `Leitura nativa direta (somente leitura) ativa · Formato: ${mod.format.toUpperCase()}`
+      : `Tipo: ${TYPE_LABELS[mod.type] || mod.type} (formato ainda não suportado para leitura).`;
+    renderBar(`${status}\nCaminho: ${mod.path}`);
     return;
   }
 
