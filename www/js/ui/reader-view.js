@@ -148,7 +148,13 @@ function highlightActiveVerse(verseNum, { scroll = false } = {}) {
 
   target.classList.add('active');
   if (scroll) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const scrollBox = $('reader-scroll');
+    if (scrollBox) {
+      const boxRect = scrollBox.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const top = scrollBox.scrollTop + (targetRect.top - boxRect.top) - (scrollBox.clientHeight / 3);
+      scrollBox.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
   }
 }
 
