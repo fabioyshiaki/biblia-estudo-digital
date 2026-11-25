@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/library.css" />
+  <link rel="stylesheet" href="css/reader.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -19,9 +20,14 @@
         </svg>
         <div>
           <h1 class="brand-title">Bíblia de Estudo Digital</h1>
-          <span class="brand-sub" id="env-badge">Onda 1 · Biblioteca UFS 3.1</span>
+          <span class="brand-sub" id="env-badge">Onda 1 · Leitor Editorial Y700</span>
         </div>
       </div>
+
+      <nav class="view-tabs" aria-label="Navegação principal">
+        <button class="view-tab-btn" data-view-set="reader">Leitor</button>
+        <button class="view-tab-btn" data-view-set="library">Biblioteca</button>
+      </nav>
 
       <div class="topbar-right">
         <button id="btn-toggle-sidebar" class="btn-ghost">Pastas e Coleções</button>
@@ -34,7 +40,53 @@
       </div>
     </header>
 
-    <main class="library-workspace">
+    <!-- TELA 1: LEITOR EDITORIAL + PAINEL DE ESTUDO SINCRONIZADO -->
+    <main id="view-reader" class="reader-workspace hidden">
+      <section class="reader-pane" aria-label="Leitura Bíblica">
+        <div class="reader-toolbar">
+          <div class="reader-nav-group">
+            <button id="btn-nav-back" class="btn-ghost" title="Voltar no histórico">←</button>
+            <button id="btn-nav-fwd" class="btn-ghost" title="Avançar no histórico">→</button>
+            <button id="btn-open-nav" class="ref-pill-btn">João 3</button>
+            <select id="select-bible-module" class="ui-select bible-select" aria-label="Tradução ativa"></select>
+          </div>
+
+          <div class="reader-tools-group">
+            <button id="btn-font-dec" class="btn-ghost" title="Diminuir fonte">A-</button>
+            <button id="btn-font-inc" class="btn-ghost" title="Aumentar fonte">A+</button>
+            <button id="btn-toggle-strongs" class="chip active">Strong: ON</button>
+            <button id="btn-toggle-study" class="chip active">Estudo</button>
+          </div>
+        </div>
+
+        <div id="reader-scroll" class="reader-scroll">
+          <article id="chapter-article" class="chapter-article"></article>
+        </div>
+
+        <div id="instant-details-bar" class="instant-bar hidden" role="region" aria-label="Detalhes Instantâneos">
+          <div class="instant-body">
+            <div id="instant-head" class="instant-head"></div>
+            <div id="instant-text" class="instant-text"></div>
+          </div>
+          <div id="instant-actions" class="instant-actions"></div>
+        </div>
+      </section>
+
+      <aside id="study-pane" class="study-pane" aria-label="Painel de Estudo Sincronizado">
+        <div class="study-tabs">
+          <button class="study-tab-btn" data-study-tab="resource-guide">Guia</button>
+          <button class="study-tab-btn" data-study-tab="commentary">Comentários</button>
+          <button class="study-tab-btn" data-study-tab="dictionary">Dicionários</button>
+          <button class="study-tab-btn" data-study-tab="book">Livros</button>
+          <button id="btn-close-study" class="icon-btn" style="margin-left:auto;" title="Ocultar painel">×</button>
+        </div>
+        <div id="study-subbar" class="study-subbar"></div>
+        <div id="study-body" class="study-body"></div>
+      </aside>
+    </main>
+
+    <!-- TELA 2: BIBLIOTECA, PASTAS, COLEÇÕES E MAPA DE COBERTURA -->
+    <main id="view-library" class="library-workspace">
       <aside id="sidebar-pane" class="pane library-sidebar">
         <section class="section-block">
           <div class="section-head">
@@ -124,10 +176,23 @@
         <div id="virtual-module-list" class="vlist-viewport"></div>
 
         <div id="inspector-bar" class="inspector-bar">
-          <span class="muted-text">Toque em qualquer módulo na lista para ver os metadados reais e testar a abertura no Pool LRU.</span>
+          <span class="muted-text">Toque em qualquer módulo na lista para ver os metadados reais ou abri-lo no Leitor.</span>
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- MODAL DE NAVEGAÇÃO RÁPIDA (LIVRO → CAPÍTULO / REFERÊNCIA) -->
+  <div id="nav-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Navegar na Bíblia">
+    <div class="nav-modal">
+      <div class="nav-modal-head">
+        <input id="nav-quick-input" type="text" placeholder="Ir direto: Rm 8:28, Sl 23, 1Co 13:4..." />
+        <button id="btn-nav-quick-go" class="btn-primary">Ir</button>
+        <button id="btn-close-nav-modal" class="icon-btn" title="Fechar">×</button>
+      </div>
+      <div id="nav-modal-tabs" class="chip-row" style="padding:10px 16px 0; margin:0;"></div>
+      <div id="nav-modal-grid" class="nav-modal-grid"></div>
+    </div>
   </div>
 
   <script type="module" src="js/core/app.js"></script>
