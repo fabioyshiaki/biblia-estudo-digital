@@ -1,0 +1,75 @@
+:root {
+  --font-ui: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+  --font-serif: "Literata", "Georgia", "Noto Serif", serif;
+  --font-mono: "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --transition-fast: 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Tema 1: Papel Quente (Leitura diurna) */
+html[data-theme="paper"] {
+  --bg-base: #F7F4EC;
+  --bg-surface: #EFECE2;
+  --bg-elevated: #FAF8F2;
+  --text-primary: #1E1D1B;
+  --text-secondary: #5A564E;
+  --border-subtle: rgba(30, 29, 27, 0.12);
+  --accent: #2D5A7B;
+  --accent-soft: rgba(45, 90, 123, 0.12);
+  --accent-ink: #FAF8F2;
+  --ok: #2E6B47;
+  --warn: #9A5B13;
+}
+
+/* Tema 2: Sépia Editorial (Estudo prolongado) */
+html[data-theme="sepia"] {
+  --bg-base: #EFE6D5;
+  --bg-surface: #E5D9C3;
+  --bg-elevated: #F5EEE0;
+  --text-primary: #2B231A;
+  --text-secondary: #685947;
+  --border-subtle: rgba(43, 35, 26, 0.14);
+  --accent: #7A4E2D;
+  --accent-soft: rgba(122, 78, 45, 0.14);
+  --accent-ink: #FAF6EF;
+  --ok: #3B6B3F;
+  --warn: #944C1A;
+}
+
+/* Tema 3: Carvão IPS (Modo escuro principal) */
+html[data-theme="charcoal"] {
+  --bg-base: #1A1C20;
+  --bg-surface: #22252B;
+  --bg-elevated: #282C34;
+  --text-primary: #DAD8D2;
+  --text-secondary: #9A9892;
+  --border-subtle: rgba(218, 216, 210, 0.12);
+  --accent: #7BAFD4;
+  --accent-soft: rgba(123, 175, 212, 0.15);
+  --accent-ink: #14171A;
+  --ok: #6FBF8C;
+  --warn: #E2A957;
+}
+
+/* Tema 4: Noturno Suave (Ambiente escuro sem preto puro) */
+html[data-theme="night"] {
+  --bg-base: #121316;
+  --bg-surface: #191B20;
+  --bg-elevated: #20232A;
+  --text-primary: #BDBBB4;
+  --text-secondary: #82807A;
+  --border-subtle: rgba(189, 187, 180, 0.11);
+  --accent: #6C9BC2;
+  --accent-soft: rgba(108, 155, 194, 0.14);
+  --accent-ink: #101215;
+  --ok: #5DA678;
+  --warn: #CFA053;
+}
