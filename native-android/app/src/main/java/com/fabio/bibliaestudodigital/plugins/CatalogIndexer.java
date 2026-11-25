@@ -56,8 +56,9 @@ public final class CatalogIndexer {
                     continue;
                 }
 
-                ContentValues cv = inspectSingleFile(f, prev != null ? prev[2] : 0);
-                upserts.add(cv);
+                long fav = prev != null ? prev[2] : 0;
+                long cov = prev != null ? prev[3] : 0;
+                upserts.add(inspectSingleFile(f, fav, cov));
                 inspected++;
             }
         }
@@ -72,7 +73,7 @@ public final class CatalogIndexer {
         return res;
     }
 
-    private static ContentValues inspectSingleFile(org.json.JSONObject f, long favorite) {
+    private static ContentValues inspectSingleFile(org.json.JSONObject f, long favorite, long coverageReady) {
         String path = f.optString("path");
         String fileName = f.optString("name");
         String format = f.optString("format");
@@ -101,29 +102,46 @@ public final class CatalogIndexer {
 
                 if (lowerTables.contains(",details,")) {
                     String[] m = readDetailsTable(db);
-                    if (!m[0].isEmpty()) title = m[0];
-                    if (!m[1].isEmpty()) abbr = m[1];
-                    if (!m[2].isEmpty()) lang = m[2];
-                    if (!m[3].isEmpty()) desc = m[3];
+                    title = pickBestTitle(m[0], m[1], m[3], fallbackTitle);
+                    if (!m[1].isEmpty()) abbr = cleanText(m[1]);
+                    lang = normalizeLang(m[2]);
+                    desc = cleanText(m[3]);
                     hasStrong = "1".equals(m[4]) ? 1 : 0;
                     rtl = "1".equals(m[5]) ? 1 : 0;
-                    if (lowerTables.contains(",bible,") && desc.toLowerCase(Locale.ROOT).contains("morph")) {
-                        hasMorph = 1;
-                    }
+                    hasMorph = "1".equals(m[6]) ? 1 : 0;
                 } else if (lowerTables.contains(",info,")) {
                     String[] m = readKeyValueTable(db, "info");
-                    if (!m[0].isEmpty()) title = m[0];
-                    if (!m[1].isEmpty()) abbr = m[1];
-                    if (!m[2].isEmpty()) lang = m[2];
-                    if (!m[3].isEmpty()) desc = m[3];
+                    title = pickBestTitle(m[0], m[1], m[3], fallbackTitle);
+                    if (!m[1].isEmpty()) abbr = cleanText(m[1]);
+                    lang = normalizeLang(m[2]);
+                    desc = cleanText(m[3]);
                     hasStrong = "1".equals(m[4]) ? 1 : 0;
                     rtl = "1".equals(m[5]) ? 1 : 0;
                 } else if (lowerTables.contains(",config,")) {
                     String[] m = readKeyValueTable(db, "config");
-                    if (!m[0].isEmpty()) title = m[0];
-                    if (!m[1].isEmpty()) abbr = m[1];
-                    if (!m[2].isEmpty()) lang = m[2];
-                    if (!m[3].isEmpty()) desc = m[3];
+                    title = pickBestTitle(m[0], m[1], m[3], fallbackTitle);
+                    if (!m[1].isEmpty()) abbr = cleanText(m[1]);
+                    lang = normalizeLang(m[2]);
+                    desc = cleanText(m[3]);
+                }
+
+                // Amostragem ultrarrápida de 1 versículo para detectar Strong e Morfologia reais
+                if ("bible".equals(type) && (hasStrong == 0 || hasMorph == 0)) {
+                    String sample = sampleFirstVerse(db, lowerTables);
+                    if (sample != null) {
+                        if (sample.contains("<WG") || sample.contains("<WH") || sample.contains("<S>")) {
+                            hasStrong = 1;
+                        }
+                        if (sample.contains("<WT") || sample.contains("<m>")) {
+                            hasMorph = 1;
+                        }
+                    }
+                }
+                if ("dictionary".equals(type)) {
+                    String lowerTitle = (title + " " + fileName).toLowerCase(Locale.ROOT);
+                    if (lowerTitle.contains("strong") || lowerTitle.contains("bhs") || lowerTitle.contains("lex")) {
+                        hasStrong = 1;
+                    }
                 }
             } catch (Exception e) {
                 locked = 1;
@@ -153,7 +171,7 @@ public final class CatalogIndexer {
         cv.put("rtl", rtl);
         cv.put("locked", locked);
         cv.put("tables_csv", tablesCsv);
-        cv.put("coverage_ready", 0);
+        cv.put("coverage_ready", coverageReady);
         cv.put("favorite", favorite);
         cv.put("updated_at", System.currentTimeMillis());
         return cv;
@@ -223,24 +241,38 @@ public final class CatalogIndexer {
         return books;
     }
 
+    private static String sampleFirstVerse(SQLiteDatabase db, String lowerTables) {
+        String sql = null;
+        if (lowerTables.contains(",bible,")) sql = "SELECT Scripture FROM Bible LIMIT 1";
+        else if (lowerTables.contains(",verses,")) sql = "SELECT text FROM verses LIMIT 1";
+        if (sql == null) return null;
+        try (Cursor c = db.rawQuery(sql, null)) {
+            if (c.moveToFirst() && !c.isNull(0)) return c.getString(0);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     private static String[] readDetailsTable(SQLiteDatabase db) {
-        String[] out = {"", "", "", "", "0", "0"};
+        String[] out = {"", "", "", "", "0", "0", "0"};
         try (Cursor c = db.rawQuery("SELECT * FROM Details LIMIT 1", null)) {
             if (!c.moveToFirst()) return out;
             for (int i = 0; i < c.getColumnCount(); i++) {
                 String col = c.getColumnName(i).toLowerCase(Locale.ROOT);
                 String val = c.isNull(i) ? "" : c.getString(i).trim();
-                if (col.equals("title") || col.equals("description") && out[0].isEmpty()) out[0] = val;
+                if (col.equals("title")) out[0] = val;
                 if (col.equals("abbreviation") || col.equals("abbr")) out[1] = val;
                 if (col.equals("language") || col.equals("lang")) out[2] = val;
-                if (col.equals("information") || col.equals("comments") || col.equals("description")) {
-                    if (out[3].isEmpty()) out[3] = val;
+                if (col.equals("description") || (out[3].isEmpty() && (col.equals("information") || col.equals("comments")))) {
+                    out[3] = val;
                 }
                 if (col.equals("strongs") || col.equals("strong")) {
                     if ("1".equals(val) || "true".equalsIgnoreCase(val)) out[4] = "1";
                 }
                 if (col.equals("righttoleft") || col.equals("rtl")) {
                     if ("1".equals(val) || "true".equalsIgnoreCase(val)) out[5] = "1";
+                }
+                if (col.equals("interlinear") || col.equals("morphology")) {
+                    if ("1".equals(val) || "true".equalsIgnoreCase(val)) out[6] = "1";
                 }
             }
         } catch (Exception ignored) {}
@@ -253,17 +285,50 @@ public final class CatalogIndexer {
             while (c.moveToNext()) {
                 String k = c.isNull(0) ? "" : c.getString(0).toLowerCase(Locale.ROOT);
                 String v = c.isNull(1) ? "" : c.getString(1).trim();
-                if (k.equals("title") || (k.equals("description") && out[0].isEmpty())) out[0] = v;
+                if (k.equals("title")) out[0] = v;
                 if (k.equals("abbrev") || k.equals("abbreviation")) out[1] = v;
                 if (k.equals("language") || k.equals("lang")) out[2] = v;
-                if (k.equals("detailed_info") || k.equals("about") || k.equals("description")) {
-                    if (out[3].isEmpty()) out[3] = v;
+                if (k.equals("description") || (out[3].isEmpty() && (k.equals("detailed_info") || k.equals("about")))) {
+                    out[3] = v;
                 }
                 if (k.equals("strong_numbers") && ("true".equalsIgnoreCase(v) || "1".equals(v))) out[4] = "1";
                 if (k.equals("right_to_left") && ("true".equalsIgnoreCase(v) || "1".equals(v))) out[5] = "1";
             }
         } catch (Exception ignored) {}
         return out;
+    }
+
+    private static String pickBestTitle(String rawTitle, String rawAbbr, String rawDesc, String fallback) {
+        String t = cleanText(rawTitle);
+        String d = cleanText(rawDesc);
+        String a = cleanText(rawAbbr);
+        boolean badTitle = t.isEmpty() || t.startsWith("©") || t.toLowerCase(Locale.ROOT).startsWith("copyright");
+        if (!badTitle) return t;
+        if (!d.isEmpty() && !d.startsWith("©")) return d;
+        if (!a.isEmpty()) return a;
+        return fallback;
+    }
+
+    private static String cleanText(String s) {
+        if (s == null) return "";
+        return s.replaceAll("(?i)<br\\s*/?>", " · ")
+                .replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replaceAll("\\s+", " ")
+                .replaceAll("^(?:·\\s*)+", "")
+                .trim();
+    }
+
+    private static String normalizeLang(String raw) {
+        String s = cleanText(raw).toUpperCase(Locale.ROOT);
+        if (s.isEmpty()) return "";
+        if (s.startsWith("POR") || s.startsWith("POT") || s.equals("PT") || s.startsWith("PT-")) return "PT";
+        if (s.startsWith("HEB") || s.equals("HE") || s.equals("IW")) return "HE";
+        if (s.startsWith("GRC") || s.startsWith("GRE") || s.equals("EL") || s.equals("GR")) return "EL";
+        if (s.startsWith("ENG") || s.equals("EN") || s.startsWith("ING")) return "EN";
+        if (s.startsWith("SPA") || s.startsWith("ESP") || s.equals("ES")) return "ES";
+        return s.length() > 12 ? s.substring(0, 12) : s;
     }
 
     private static List<String> listTables(SQLiteDatabase db) {
