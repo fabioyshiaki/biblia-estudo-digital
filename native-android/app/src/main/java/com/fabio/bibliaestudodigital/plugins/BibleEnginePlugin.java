@@ -309,6 +309,25 @@ public class BibleEnginePlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void readTheWordChapter(PluginCall call) {
+        String path = call.getString("path");
+        Integer bookId = call.getInt("bookId");
+        Integer chapter = call.getInt("chapter");
+        if (path == null || bookId == null || chapter == null) {
+            call.reject("path, bookId e chapter obrigatórios.");
+            return;
+        }
+        executor.execute(() -> {
+            try {
+                JSObject ret = TheWordOntReader.readChapter(path, bookId, chapter);
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("Erro ao ler módulo theWord: " + e.getMessage());
+            }
+        });
+    }
+
     @Override
     protected void handleOnStop() {
         closePool();
@@ -318,6 +337,7 @@ public class BibleEnginePlugin extends Plugin {
     @Override
     protected void handleOnDestroy() {
         closePool();
+        TheWordOntReader.clearCache();
         if (catalogDb != null) catalogDb.close();
         executor.shutdownNow();
         super.handleOnDestroy();
