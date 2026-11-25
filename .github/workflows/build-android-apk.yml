@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: '20'
 
+- name: 2.5. Validar sintaxe de todos os ficheiros JS
+        run: |
+          find www/js -name "*.js" -print0 | xargs -0 -n 1 node --check
       - name: 3. Configurar Java 17 (JDK)
         uses: actions/setup-java@v4
         with:
