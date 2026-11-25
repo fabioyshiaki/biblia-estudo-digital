@@ -77,5 +77,9 @@ export const engineApi = {
 
   queryModule(path, sql, args = []) {
     return target.queryModule({ path, sql, args });
+  },
+
+  readTheWordChapter(path, bookId, chapter) {
+    return target.readTheWordChapter({ path, bookId, chapter });
   }
 };
