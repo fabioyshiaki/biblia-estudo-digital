@@ -13,7 +13,6 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +57,15 @@ public class BibleEnginePlugin extends Plugin {
         return db;
     }
 
+    private static String formatDeviceModel() {
+        String mfg = Build.MANUFACTURER != null ? Build.MANUFACTURER.trim() : "";
+        String model = Build.MODEL != null ? Build.MODEL.trim() : "";
+        if (model.toLowerCase(Locale.ROOT).startsWith(mfg.toLowerCase(Locale.ROOT))) {
+            return model;
+        }
+        return (mfg + " " + model).trim();
+    }
+
     @PluginMethod
     public void checkStoragePermission(PluginCall call) {
         boolean granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager();
@@ -86,7 +94,7 @@ public class BibleEnginePlugin extends Plugin {
     public void getDiagnostics(PluginCall call) {
         executor.execute(() -> {
             JSObject ret = new JSObject();
-            ret.put("deviceModel", Build.MANUFACTURER + " " + Build.MODEL);
+            ret.put("deviceModel", formatDeviceModel());
             ret.put("androidVersion", Build.VERSION.RELEASE);
             ret.put("sdkInt", Build.VERSION.SDK_INT);
             ret.put("volumes", ModuleScanner.getStorageVolumes(getContext()));
