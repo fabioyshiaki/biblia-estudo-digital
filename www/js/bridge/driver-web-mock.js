@@ -4,7 +4,7 @@ export const webMockDriver = {
   requestStoragePermission: async () => ({}),
   getDiagnostics: async () => ({
     deviceModel: 'Web Mock', androidVersion: '13', sdkInt: 33,
-    sqliteVersion: '3.32.2', fts5Supported: false,
+    sqliteVersion: '3.32.2', fts5Supported: true,
     maxPoolSize: 14, currentPoolOpen: 0, volumes: []
   }),
   getFolders: async () => ({ folders: [] }),
@@ -33,5 +33,8 @@ export const webMockDriver = {
     if (action === 'exportBackup') return { path: '', counts: { highlights: 0, notes: 0, bookmarks: 0, clippings: 0 }, json: '{}' };
     if (action === 'importBackup') return { imported: { highlights: 0, notes: 0, bookmarks: 0, clippings: 0 } };
     return { ok: true, id: `mock_${Date.now()}` };
-  }
+  },
+  searchModules: async () => ({ results: [], totalReturned: 0, durationMs: 0, usedFts: false }),
+  indexModuleForSearch: async ({ moduleId }) => ({ moduleId, verseCount: 0, durationMs: 0 }),
+  getSearchIndexStats: async () => ({ indexedModules: [], totalVerses: 0 })
 };
