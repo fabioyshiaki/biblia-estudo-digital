@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="charcoal">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bíblia de Estudo Digital</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <path d="M12 6v7M9.5 9h5" />
+        </svg>
+        <div>
+          <h1 class="brand-title">Bíblia de Estudo Digital</h1>
+          <span class="brand-sub" id="env-badge">Onda 0 · Fundação Y700</span>
+        </div>
+      </div>
+
+      <div class="theme-switcher" role="group" aria-label="Tema de leitura IPS">
+        <button class="theme-btn" data-theme-set="paper">Papel</button>
+        <button class="theme-btn" data-theme-set="sepia">Sépia</button>
+        <button class="theme-btn" data-theme-set="charcoal">Carvão</button>
+        <button class="theme-btn" data-theme-set="night">Noturno</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="pane pane-left" aria-label="Diagnóstico e Biblioteca">
+        <div class="section-block">
+          <div class="section-head">
+            <h2>1. Permissão e Hardware (Y700)</h2>
+            <button id="btn-refresh-diag" class="btn-ghost">Atualizar</button>
+          </div>
+          <div id="perm-banner" class="notice-row">
+            <span id="perm-status">Verificando acesso aos arquivos...</span>
+            <button id="btn-grant-perm" class="btn-primary hidden">Conceder Acesso</button>
+          </div>
+          <dl id="diag-grid" class="meta-grid"></dl>
+        </div>
+
+        <div class="section-block">
+          <div class="section-head">
+            <h2>2. Pasta de Módulos (UFS 3.1 / microSD)</h2>
+          </div>
+          <div id="volume-chips" class="chip-row"></div>
+          <div class="input-row">
+            <input
+              id="input-folder"
+              type="text"
+              placeholder="/storage/emulated/0/mysword"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="btn-scan" class="btn-primary">Escanear</button>
+          </div>
+          <p id="scan-summary" class="muted-text">
+            Selecione um volume ou informe o caminho da pasta com seus módulos.
+          </p>
+        </div>
+
+        <div class="section-block">
+          <div class="section-head">
+            <h2>3. Inspeção de Módulo (Pool LRU)</h2>
+          </div>
+          <div id="inspect-box" class="inspect-box muted-text">
+            Toque em qualquer módulo SQLite na lista ao lado (inclusive acima de 600 MB) para medir o tempo real de abertura sem cópia.
+          </div>
+        </div>
+      </section>
+
+      <section class="pane pane-right" aria-label="Lista de Módulos Detectados">
+        <div class="list-toolbar">
+          <input
+            id="input-filter"
+            type="search"
+            placeholder="Filtrar por nome ou formato (mysword, pdf, epub, theword...)"
+          />
+          <button id="btn-sort-size" class="btn-ghost" title="Ordenar por tamanho">
+            Maiores primeiro
+          </button>
+        </div>
+        <div id="format-counts" class="chip-row"></div>
+        <div id="module-list" class="module-list">
+          <p class="empty-state">Nenhum módulo listado ainda.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/core/app.js"></script>
+</body>
+</html>
