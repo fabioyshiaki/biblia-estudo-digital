@@ -195,6 +195,20 @@
     </div>
   </div>
 
-  <script type="module" src="js/core/app.js"></script>
+<script type="module">
+    const showBootError = (msg) => {
+      const el = document.getElementById('perm-status');
+      if (el) {
+        el.textContent = 'ERRO DE BOOT: ' + msg;
+        el.style.color = '#E2A957';
+      }
+    };
+    window.addEventListener('error', (e) => showBootError(e.message || 'Erro de script'));
+    window.addEventListener('unhandledrejection', (e) => showBootError(String(e.reason || 'Promise rejeitada')));
+
+    import('./js/core/app.js').catch((err) => {
+      showBootError(err && err.message ? err.message : String(err));
+    });
+  </script>
 </body>
 </html>
