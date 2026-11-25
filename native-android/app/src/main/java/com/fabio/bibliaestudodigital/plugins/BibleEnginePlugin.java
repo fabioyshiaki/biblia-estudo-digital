@@ -27,6 +27,7 @@ public class BibleEnginePlugin extends Plugin {
     private static final int MAX_OPEN_DBS = 14;
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private CatalogDatabase catalogDb;
+    private UserDataDatabase userDataDb;
 
     private final Map<String, SQLiteDatabase> dbPool =
         new LinkedHashMap<String, SQLiteDatabase>(16, 0.75f, true) {
@@ -46,6 +47,7 @@ public class BibleEnginePlugin extends Plugin {
     @Override
     public void load() {
         catalogDb = new CatalogDatabase(getContext());
+        userDataDb = new UserDataDatabase(getContext());
     }
 
     private synchronized SQLiteDatabase getReadOnlyDb(String path) {
@@ -381,6 +383,24 @@ public class BibleEnginePlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void userDataAction(PluginCall call) {
+        String action = call.getString("action");
+        if (action == null || action.isEmpty()) {
+            call.reject("action obrigatório.");
+            return;
+        }
+        JSObject payload = call.getObject("payload");
+        final JSObject safePayload = payload != null ? payload : new JSObject();
+        executor.execute(() -> {
+            try {
+                call.resolve(userDataDb.dispatch(action, safePayload));
+            } catch (Exception e) {
+                call.reject("Erro em user_data.db (" + action + "): " + e.getMessage());
+            }
+        });
+    }
+
     @Override
     protected void handleOnStop() {
         closePool();
@@ -393,6 +413,7 @@ public class BibleEnginePlugin extends Plugin {
         TheWordOntReader.clearCache();
         EpubReader.clearCache();
         if (catalogDb != null) catalogDb.close();
+        if (userDataDb != null) userDataDb.close();
         executor.shutdownNow();
         super.handleOnDestroy();
     }
