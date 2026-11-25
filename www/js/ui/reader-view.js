@@ -2,6 +2,7 @@ import { store } from '../core/store.js';
 import { events } from '../core/events.js';
 import { BOOKS, getBookById, formatRef } from '../core/canon.js';
 import { moduleReader } from '../formats/module-reader.js';
+import { userDataRepo } from '../study/user-data-repo.js';
 import { navSelector } from './nav-selector.js';
 
 const $ = (id) => document.getElementById(id);
@@ -151,6 +152,44 @@ function highlightActiveVerse(verseNum, { scroll = false } = {}) {
   }
 }
 
+function applyVerseNoteDot(verseEl, hasNote) {
+  const existing = verseEl.querySelector('.verse-note-dot');
+  if (hasNote && !existing) {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'verse-note-dot';
+    dot.title = 'Abrir nota pessoal deste versículo';
+    dot.textContent = '✎';
+    verseEl.appendChild(dot);
+  } else if (!hasNote && existing) {
+    existing.remove();
+  }
+}
+
+async function syncChapterDecorations({ forceHighlights = false } = {}) {
+  const article = $('chapter-article');
+  if (!article || store.state.viewMode !== 'reader') return;
+  const { bookId, chapter } = store.state.currentBcv;
+
+  const [hlMap, notes] = await Promise.all([
+    userDataRepo.getChapterHighlights(bookId, chapter, { force: forceHighlights }).catch(() => new Map()),
+    userDataRepo.getNotes({ bookId, chapter }).catch(() => [])
+  ]);
+
+  const notedVerses = new Set();
+  for (const n of notes) {
+    for (let v = n.verseStart; v <= n.verseEnd; v++) notedVerses.add(v);
+  }
+
+  article.querySelectorAll('.verse-item').forEach((el) => {
+    const vNum = Number(el.dataset.verse || 0);
+    const color = hlMap.get(vNum) || '';
+    if (color) el.dataset.hl = color;
+    else delete el.dataset.hl;
+    applyVerseNoteDot(el, notedVerses.has(vNum));
+  });
+}
+
 async function renderChapter() {
   if (store.state.viewMode !== 'reader') return;
 
@@ -162,7 +201,7 @@ async function renderChapter() {
   updateToolbarButtons();
 
   if (!mod) {
-    article.innerHTML = '<p class="empty-state">Nenhuma Bíblia MySword ou MyBible disponível no catálogo. Sincronize suas pastas na aba Biblioteca.</p>';
+    article.innerHTML = '<p class="empty-state">Nenhuma Bíblia compatível disponível no catálogo. Sincronize suas pastas na aba Biblioteca.</p>';
     return;
   }
 
@@ -171,8 +210,17 @@ async function renderChapter() {
   article.innerHTML = '<p class="empty-state">Carregando capítulo...</p>';
 
   try {
-    const res = await fetchChapterCached(mod, bookId, chapter);
+    const [res, hlMap, notes] = await Promise.all([
+      fetchChapterCached(mod, bookId, chapter),
+      userDataRepo.getChapterHighlights(bookId, chapter).catch(() => new Map()),
+      userDataRepo.getNotes({ bookId, chapter }).catch(() => [])
+    ]);
     if (token !== renderToken) return;
+
+    const notedVerses = new Set();
+    for (const n of notes) {
+      for (let v = n.verseStart; v <= n.verseEnd; v++) notedVerses.add(v);
+    }
 
     const book = getBookById(bookId);
     const frag = document.createDocumentFragment();
@@ -197,6 +245,8 @@ async function renderChapter() {
         const div = document.createElement('div');
         div.className = 'verse-item';
         div.dataset.verse = String(v.verse);
+        const hlColor = hlMap.get(v.verse);
+        if (hlColor) div.dataset.hl = hlColor;
 
         const num = document.createElement('span');
         num.className = 'verse-num';
@@ -207,6 +257,7 @@ async function renderChapter() {
         body.innerHTML = v.html;
 
         div.append(num, body);
+        if (notedVerses.has(v.verse)) applyVerseNoteDot(div, true);
         frag.appendChild(div);
       }
     }
@@ -251,6 +302,18 @@ async function renderChapter() {
 }
 
 function handleArticleClick(e) {
+  const noteDot = e.target.closest('.verse-note-dot');
+  if (noteDot) {
+    e.stopPropagation();
+    const row = e.target.closest('.verse-item');
+    if (row) {
+      store.state.currentBcv = { ...store.state.currentBcv, verse: Number(row.dataset.verse || 1) };
+      store.savePrefs();
+    }
+    store.setStudyTab('notes');
+    return;
+  }
+
   const strongBtn = e.target.closest('.v-strong');
   if (strongBtn) {
     e.stopPropagation();
@@ -292,13 +355,14 @@ function handleArticleClick(e) {
     highlightActiveVerse(vNum, { scroll: false });
 
     const textClone = verseEl.querySelector('.verse-text').cloneNode(true);
-    textClone.querySelectorAll('.v-strong, .v-morph, .v-fn, .v-xref').forEach((n) => n.remove());
+    textClone.querySelectorAll('.v-strong, .v-morph, .v-fn, .v-xref, .verse-note-dot').forEach((n) => n.remove());
     const cleanText = textClone.textContent.replace(/\s+/g, ' ').trim();
 
     events.emit('verse:selected', {
       bcv: store.state.currentBcv,
       moduleId: store.state.activeBibleId,
-      text: cleanText
+      text: cleanText,
+      highlightColor: verseEl.dataset.hl || ''
     });
     events.emit('study:verse-focused', { bcv: store.state.currentBcv });
   }
@@ -309,14 +373,17 @@ export const readerView = {
     store.setFontSize(store.state.fontSize);
 
     $('btn-open-nav').addEventListener('click', () => navSelector.open());
-    $('btn-nav-back').addEventListener('click', () => store.goBack());$('btn-nav-fwd').addEventListener('click', () => store.goForward());
+    $('btn-nav-back').addEventListener('click', () => store.goBack());
+    $('btn-nav-fwd').addEventListener('click', () => store.goForward());
 
     $('select-bible-module').addEventListener('change', (e) => {
       if (e.target.value) store.setActiveModule('bible', e.target.value);
     });
 
-    $('btn-font-dec').addEventListener('click', () => store.setFontSize(store.state.fontSize - 2));$('btn-font-inc').addEventListener('click', () => store.setFontSize(store.state.fontSize + 2));
-    $('btn-toggle-strongs').addEventListener('click', () => store.toggleStrongs());$('btn-toggle-study').addEventListener('click', () => store.setStudyPaneOpen(!store.state.studyPaneOpen));
+    $('btn-font-dec').addEventListener('click', () => store.setFontSize(store.state.fontSize - 2));
+    $('btn-font-inc').addEventListener('click', () => store.setFontSize(store.state.fontSize + 2));
+    $('btn-toggle-strongs').addEventListener('click', () => store.toggleStrongs());
+    $('btn-toggle-study').addEventListener('click', () => store.setStudyPaneOpen(!store.state.studyPaneOpen));
 
     $('chapter-article').addEventListener('click', handleArticleClick);
 
@@ -351,5 +418,17 @@ export const readerView = {
         renderChapter();
       }
     });
+
+    events.on('userdata:highlights-changed', ({ bookId, chapter, verse, color }) => {
+      const cur = store.state.currentBcv;
+      if (cur.bookId !== bookId || cur.chapter !== chapter) return;
+      const el = $('chapter-article')?.querySelector(`.verse-item[data-verse="${verse}"]`);
+      if (!el) return;
+      if (color) el.dataset.hl = color;
+      else delete el.dataset.hl;
+    });
+
+    events.on('userdata:notes-changed', () => syncChapterDecorations({ forceHighlights: false }));
+    events.on('userdata:all-changed', () => syncChapterDecorations({ forceHighlights: true }));
   }
 };
