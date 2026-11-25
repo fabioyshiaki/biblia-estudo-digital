@@ -1,11 +1,15 @@
 import { myswordAdapter } from './adapter-mysword.js';
 import { mybibleAdapter } from './adapter-mybible.js';
+import { eswordAdapter } from './adapter-esword.js';
+import { thewordTwmAdapter } from './adapter-theword-twm.js';
 import { normalizeStrongCode } from './sanitizer.js';
 
 function getAdapter(mod) {
   if (!mod) return null;
   if (mod.format === 'mybible') return mybibleAdapter;
   if (mod.format === 'mysword') return myswordAdapter;
+  if (mod.format === 'esword') return eswordAdapter;
+  if (mod.format === 'theword' && mod.isSqlite) return thewordTwmAdapter;
   return null;
 }
 
@@ -25,7 +29,7 @@ export const moduleReader = {
   async readChapter(mod, bookId, chapter) {
     const adapter = getAdapter(mod);
     if (!adapter) {
-      throw new Error(`Formato "${mod?.format}" será suportado na Onda 2.`);
+      throw new Error(`Formato "${mod?.format}" será suportado na próxima etapa da Onda 2.`);
     }
     return adapter.getChapter(mod, bookId, chapter);
   },
@@ -33,7 +37,7 @@ export const moduleReader = {
   async readCommentary(mod, bookId, chapter) {
     const adapter = getAdapter(mod);
     if (!adapter) {
-      throw new Error(`Comentário no formato "${mod?.format}" será suportado na Onda 2.`);
+      throw new Error(`Comentário no formato "${mod?.format}" ainda não suportado.`);
     }
     return adapter.getCommentaryForChapter(mod, bookId, chapter);
   },
@@ -41,7 +45,7 @@ export const moduleReader = {
   async lookupDictionary(mod, term) {
     const adapter = getAdapter(mod);
     if (!adapter) {
-      throw new Error(`Dicionário no formato "${mod?.format}" será suportado na Onda 2.`);
+      throw new Error(`Dicionário no formato "${mod?.format}" ainda não suportado.`);
     }
 
     const candidates = strongVariants(term);
