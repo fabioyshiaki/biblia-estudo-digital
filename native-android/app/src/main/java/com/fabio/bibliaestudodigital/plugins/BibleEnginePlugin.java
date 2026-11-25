@@ -161,8 +161,7 @@ public class BibleEnginePlugin extends Plugin {
                     paths.add(f.optString("path"));
                 }
             }
-            JSObject res = CatalogIndexer.syncFolders(catalogDb, paths, force);
-            call.resolve(res);
+            call.resolve(CatalogIndexer.syncFolders(catalogDb, paths, force));
         });
     }
 
@@ -320,10 +319,64 @@ public class BibleEnginePlugin extends Plugin {
         }
         executor.execute(() -> {
             try {
-                JSObject ret = TheWordOntReader.readChapter(path, bookId, chapter);
-                call.resolve(ret);
+                call.resolve(TheWordOntReader.readChapter(path, bookId, chapter));
             } catch (Exception e) {
                 call.reject("Erro ao ler módulo theWord: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void getEpubInfo(PluginCall call) {
+        String path = call.getString("path");
+        if (path == null || path.isEmpty()) { call.reject("path obrigatório."); return; }
+        executor.execute(() -> {
+            try {
+                call.resolve(EpubReader.getInfo(path));
+            } catch (Exception e) {
+                call.reject("Erro ao abrir EPUB: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void readEpubChapter(PluginCall call) {
+        String path = call.getString("path");
+        Integer index = call.getInt("chapterIndex");
+        if (path == null || index == null) { call.reject("path e chapterIndex obrigatórios."); return; }
+        executor.execute(() -> {
+            try {
+                call.resolve(EpubReader.readChapter(path, index));
+            } catch (Exception e) {
+                call.reject("Erro ao ler capítulo EPUB: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void getPdfInfo(PluginCall call) {
+        String path = call.getString("path");
+        if (path == null || path.isEmpty()) { call.reject("path obrigatório."); return; }
+        executor.execute(() -> {
+            try {
+                call.resolve(PdfPageReader.getInfo(path));
+            } catch (Exception e) {
+                call.reject("Erro ao abrir PDF: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void renderPdfPage(PluginCall call) {
+        String path = call.getString("path");
+        Integer pageIndex = call.getInt("pageIndex");
+        int maxWidth = call.getInt("maxWidth", 1400);
+        if (path == null || pageIndex == null) { call.reject("path e pageIndex obrigatórios."); return; }
+        executor.execute(() -> {
+            try {
+                call.resolve(PdfPageReader.renderPage(path, pageIndex, maxWidth));
+            } catch (Exception e) {
+                call.reject("Erro ao renderizar página PDF: " + e.getMessage());
             }
         });
     }
@@ -338,6 +391,7 @@ public class BibleEnginePlugin extends Plugin {
     protected void handleOnDestroy() {
         closePool();
         TheWordOntReader.clearCache();
+        EpubReader.clearCache();
         if (catalogDb != null) catalogDb.close();
         executor.shutdownNow();
         super.handleOnDestroy();
