@@ -1,512 +1,185 @@
-:root {
-  --reader-font-size: 19px;
-  --woj-color: #A83A2B;
-}
+/* Ondas 3, 4 e 5 — Grifos, Notas, Busca Global e Assistente IA */
+.verse-item[data-hl="amber"] { background: rgba(217, 155, 38, 0.22); }
+.verse-item[data-hl="sage"] { background: rgba(74, 158, 108, 0.22); }
+.verse-item[data-hl="sky"] { background: rgba(66, 138, 214, 0.22); }
+.verse-item[data-hl="rose"] { background: rgba(208, 92, 114, 0.22); }
+.verse-item[data-hl="violet"] { background: rgba(148, 108, 212, 0.22); }
 
-html[data-theme="charcoal"],
-html[data-theme="night"] {
-  --woj-color: #DF7B6B;
-}
-
-.view-tabs {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-}
-
-.view-tab-btn {
+.verse-note-dot {
   border: 0;
   background: transparent;
-  color: var(--text-secondary);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.view-tab-btn.active {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-/* Workspace do Leitor: Retrato = empilhado | Paisagem Y700 (>=760px) = 2 colunas */
-.reader-workspace {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.reader-pane {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-
-.study-pane {
-  height: 44%;
-  min-height: 210px;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.study-pane.hidden {
-  display: none;
-}
-
-@media (min-width: 760px) {
-  .reader-workspace {
-    flex-direction: row;
-  }
-  .study-pane {
-    width: 43%;
-    max-width: 520px;
-    height: 100%;
-    border-top: 0;
-    border-left: 1px solid var(--border-subtle);
-  }
-}
-
-/* Barra superior do capítulo */
-.reader-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 8px var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-base);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.reader-nav-group,
-.reader-tools-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ref-pill-btn {
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.bible-select {
-  max-width: 190px;
-}
-
-.reader-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-5) var(--space-4) 96px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.chapter-article {
-  max-width: 68ch;
-  margin: 0 auto;
-  font-family: var(--font-serif);
-  font-size: var(--reader-font-size);
-  line-height: 1.72;
-  color: var(--text-primary);
-}
-
-.chapter-article.reader-rtl {
-  direction: rtl;
-  text-align: right;
-  font-family: "Noto Serif Hebrew", "SBL Hebrew", serif;
-  font-size: calc(var(--reader-font-size) * 1.18);
-  line-height: 1.9;
-}
-
-.chapter-heading {
-  font-family: var(--font-serif);
-  font-size: 1.45em;
-  font-weight: 600;
-  margin: 0 0 var(--space-4);
-  letter-spacing: -0.01em;
-}
-
-.chapter-meta {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: var(--space-4);
-}
-
-.verse-item {
-  padding: 6px 10px;
-  margin: 0 -10px 4px;
-  border-radius: var(--radius-sm);
-  border-left: 3px solid transparent;
-  transition: background var(--transition-fast);
-  contain: layout style;
-}
-
-.verse-item.active {
-  background: var(--accent-soft);
-  border-left-color: var(--accent);
-}
-
-.verse-num {
-  font-family: var(--font-ui);
-  font-size: 0.68em;
-  font-weight: 600;
   color: var(--accent);
-  vertical-align: super;
-  margin-right: 6px;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-}
-
-.reader-rtl .verse-num {
-  margin-right: 0;
-  margin-left: 6px;
-}
-
-.v-subheading {
-  display: block;
-  font-family: var(--font-ui);
   font-size: 0.78em;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
-  margin: 14px 0 6px;
-}
-
-.v-woj { color: var(--woj-color); }
-.v-added { font-style: italic; opacity: 0.88; }
-
-.v-strong, .v-morph, .v-fn, .v-xref {
-  border: 0;
-  font-family: var(--font-mono);
+  margin-left: 6px;
   cursor: pointer;
-  vertical-align: baseline;
-  border-radius: 4px;
-  margin: 0 2px;
-  padding: 1px 4px;
-}
-
-.v-strong {
-  font-size: 0.64em;
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.v-morph {
-  font-size: 0.58em;
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-subtle);
-}
-
-.v-fn, .v-xref {
-  font-size: 0.68em;
-  background: transparent;
-  color: var(--accent);
-  font-weight: 700;
   padding: 0 3px;
 }
 
-.hide-strongs .v-strong,
-.hide-strongs .v-morph {
-  display: none;
-}
-
-.chapter-footer-nav {
-  max-width: 68ch;
-  margin: var(--space-5) auto 0;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-/* Barra Instant Details (rodapé do leitor) */
 .instant-bar {
-  position: absolute;
-  left: var(--space-3);
-  right: var(--space-3);
-  bottom: var(--space-3);
-  padding: 10px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  transform: translate3d(0, 0, 0);
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-  z-index: 10;
-}
-
-.instant-bar.hidden {
-  display: none;
-}
-
-.instant-body {
-  min-width: 0;
-  flex: 1;
-}
-
-.instant-head {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 2px;
-}
-
-.instant-text {
-  font-size: 13px;
-  color: var(--text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 
 .instant-actions {
+  flex-wrap: wrap;
+}
+
+.instant-extra {
+  margin-top: 6px;
+}
+
+.hl-palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hl-label {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.hl-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hl-dot.active {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.hl-dot-amber { background: #D99B26; }
+.hl-dot-sage { background: #4A9E6C; }
+.hl-dot-sky { background: #428AD6; }
+.hl-dot-rose { background: #D05C72; }
+.hl-dot-violet { background: #946CD4; }
+
+.hl-clear-btn {
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.study-inline-bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
 }
 
-/* Painel de Estudo Sincronizado */
-.study-tabs {
+.study-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+}
+
+.study-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.study-card-head {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-base);
-  flex-shrink: 0;
-  overflow-x: auto;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.study-tab-btn {
+.study-ref-link {
   border: 0;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--accent);
   font-size: 12.5px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.study-tab-btn.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.study-subbar {
-  padding: 8px var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.study-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-3) var(--space-4) var(--space-5);
-  -webkit-overflow-scrolling: touch;
-}
-
-.study-entry {
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.study-entry-head {
-  font-size: 12px;
   font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 6px;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
-.study-article {
-  font-size: 14.5px;
-  line-height: 1.65;
+.study-note-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
-.study-article img {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-sm);
-  margin: 8px 0;
-}
-
-.rg-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 9px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+.study-clip-quote {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
   background: var(--bg-base);
-  margin-bottom: 6px;
-  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
-/* Modal de Navegação Livro → Capítulo → Versículo */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 12, 16, 0.62);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  z-index: 40;
+.search-hit {
+  background: rgba(217, 155, 38, 0.35);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
-.modal-backdrop.hidden {
-  display: none;
-}
-
-.nav-modal {
-  width: 100%;
-  max-width: 660px;
-  max-height: 84vh;
+.ai-log {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.ai-msg {
+  padding: 10px 12px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-base);
-  overflow: hidden;
-}
-
-.nav-modal-head {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.nav-modal-grid {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  gap: 8px;
-}
-
-.nav-modal-grid.numbers-grid {
-  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
-}
-
-.nav-cell {
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  color: var(--text-primary);
   border-radius: var(--radius-sm);
-  padding: 9px 8px;
-  font-size: 13px;
-  text-align: center;
-  cursor: pointer;
-  font-variant-numeric: tabular-nums;
+  background: var(--bg-base);
 }
 
-.nav-cell.active {
-  border-color: var(--accent);
+.ai-msg-user {
+  border-left: 3px solid var(--accent);
+}
+
+.ai-msg-error {
+  border-left: 3px solid var(--warn);
+}
+
+.study-article h3,
+.study-article h4 {
+  margin: 10px 0 6px;
+  font-family: var(--font-serif);
+}
+
+.study-article ul {
+  margin: 6px 0 8px 18px;
+  padding: 0;
+}
+
+.study-article code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
   background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
-}
-/* Onda 2 — Leitor de PDF, EPUB e Modo Noturno Inteligente */
-.study-subbar {
-  flex-wrap: wrap;
-}
-
-.pdf-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.pdf-page-input {
-  width: 60px;
-  padding: 6px 8px;
-  text-align: center;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.pdf-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.pdf-page-img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: #ffffff;
-  transition: filter var(--transition-fast);
-}
-
-.pdf-page-img.pdf-night-mode {
-  filter: invert(0.88) hue-rotate(180deg) contrast(0.96);
-}
-
-.pdf-page-img.pdf-sepia-mode {
-  filter: sepia(0.24) brightness(0.96);
-}
-
-.pdf-footer-nav {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.book-resume-bar {
-  margin-bottom: var(--space-3);
+  padding: 1px 4px;
+  border-radius: 3px;
 }
