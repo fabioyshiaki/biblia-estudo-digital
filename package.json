@@ -1,0 +1,17 @@
+{
+  "name": "biblia-estudo-digital",
+  "version": "0.1.0",
+  "description": "Aplicativo modular de estudo bíblico otimizado para Lenovo Legion Y700",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cap:sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
