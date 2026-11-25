@@ -9,33 +9,73 @@ function getNativePlugin() {
 }
 
 const native = getNativePlugin();
+const target = native || webMockDriver;
 
 export const engineApi = {
   isNative: Boolean(native),
 
   checkStoragePermission() {
-    return native ? native.checkStoragePermission() : webMockDriver.checkStoragePermission();
+    return target.checkStoragePermission();
   },
 
   requestStoragePermission() {
-    return native ? native.requestStoragePermission() : webMockDriver.requestStoragePermission();
+    return target.requestStoragePermission();
   },
 
   getDiagnostics() {
-    return native ? native.getDiagnostics() : webMockDriver.getDiagnostics();
+    return target.getDiagnostics();
   },
 
-  scanDirectory(path) {
-    return native ? native.scanDirectory({ path }) : webMockDriver.scanDirectory({ path });
+  getFolders() {
+    return target.getFolders();
+  },
+
+  saveFolders(folders) {
+    return target.saveFolders({ folders });
+  },
+
+  syncCatalog(force = false) {
+    return target.syncCatalog({ force });
+  },
+
+  getCatalog() {
+    return target.getCatalog();
+  },
+
+  setModuleFavorite(id, favorite) {
+    return target.setModuleFavorite({ id, favorite });
+  },
+
+  buildCoverageMap() {
+    return target.buildCoverageMap();
+  },
+
+  getCoverageForBook(bookId, type = '') {
+    return target.getCoverageForBook({ bookId, type });
+  },
+
+  getModuleSets() {
+    return target.getModuleSets();
+  },
+
+  saveModuleSet(id, name, moduleIds, sortOrder = 0) {
+    return target.saveModuleSet({
+      id,
+      name,
+      moduleIdsJson: JSON.stringify(moduleIds || []),
+      sortOrder
+    });
+  },
+
+  deleteModuleSet(id) {
+    return target.deleteModuleSet({ id });
   },
 
   inspectSqliteModule(path) {
-    return native ? native.inspectSqliteModule({ path }) : webMockDriver.inspectSqliteModule({ path });
+    return target.inspectSqliteModule({ path });
   },
 
   queryModule(path, sql, args = []) {
-    return native
-      ? native.queryModule({ path, sql, args })
-      : webMockDriver.queryModule({ path, sql, args });
+    return target.queryModule({ path, sql, args });
   }
 };
