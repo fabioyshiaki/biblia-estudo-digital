@@ -14,7 +14,9 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -25,6 +27,7 @@ public class BibleEnginePlugin extends Plugin {
 
     private static final int MAX_OPEN_DBS = 14;
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private CatalogDatabase catalogDb;
 
     private final Map<String, SQLiteDatabase> dbPool =
         new LinkedHashMap<String, SQLiteDatabase>(16, 0.75f, true) {
@@ -41,11 +44,14 @@ public class BibleEnginePlugin extends Plugin {
             }
         };
 
+    @Override
+    public void load() {
+        catalogDb = new CatalogDatabase(getContext());
+    }
+
     private synchronized SQLiteDatabase getReadOnlyDb(String path) {
         SQLiteDatabase db = dbPool.get(path);
-        if (db != null && db.isOpen()) {
-            return db;
-        }
+        if (db != null && db.isOpen()) return db;
         int flags = SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS;
         db = SQLiteDatabase.openDatabase(path, null, flags);
         dbPool.put(path, db);
@@ -54,10 +60,7 @@ public class BibleEnginePlugin extends Plugin {
 
     @PluginMethod
     public void checkStoragePermission(PluginCall call) {
-        boolean granted = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            granted = Environment.isExternalStorageManager();
-        }
+        boolean granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager();
         JSObject ret = new JSObject();
         ret.put("granted", granted);
         ret.put("sdkInt", Build.VERSION.SDK_INT);
@@ -66,18 +69,14 @@ public class BibleEnginePlugin extends Plugin {
 
     @PluginMethod
     public void requestStoragePermission(PluginCall call) {
-        if (getActivity() == null) {
-            call.reject("Activity indisponível");
-            return;
-        }
+        if (getActivity() == null) { call.reject("Activity indisponível"); return; }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
             intent.setData(Uri.parse("package:" + getContext().getPackageName()));
             try {
                 getActivity().startActivity(intent);
             } catch (Exception e) {
-                Intent fallback = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                getActivity().startActivity(fallback);
+                getActivity().startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
             }
         }
         call.resolve();
@@ -101,13 +100,11 @@ public class BibleEnginePlugin extends Plugin {
                     if (c.moveToFirst()) ret.put("sqliteVersion", c.getString(0));
                 }
                 boolean fts5 = false;
-                try {
-                    memDb.execSQL("CREATE VIRTUAL TABLE _t USING fts5(content)");
-                    fts5 = true;
-                } catch (Exception ignored) {}
+                try { memDb.execSQL("CREATE VIRTUAL TABLE _t USING fts5(content)"); fts5 = true; }
+                catch (Exception ignored) {}
                 ret.put("fts5Supported", fts5);
             } catch (Exception e) {
-                ret.put("sqliteVersion", "erro: " + e.getMessage());
+                ret.put("sqliteVersion", "erro");
                 ret.put("fts5Supported", false);
             } finally {
                 if (memDb != null) memDb.close();
@@ -117,48 +114,121 @@ public class BibleEnginePlugin extends Plugin {
     }
 
     @PluginMethod
-    public void scanDirectory(PluginCall call) {
-        String path = call.getString("path");
-        if (path == null || path.trim().isEmpty()) {
-            call.reject("Informe o caminho da pasta de módulos.");
-            return;
-        }
+    public void getFolders(PluginCall call) {
         executor.execute(() -> {
-            long start = System.currentTimeMillis();
-            File dir = new File(path);
-            if (!dir.exists() || !dir.isDirectory()) {
-                call.reject("Pasta não encontrada ou sem acesso: " + path);
-                return;
-            }
-            JSArray files = new JSArray();
-            ModuleScanner.scanRecursive(dir, files);
-
             JSObject ret = new JSObject();
-            ret.put("path", path);
-            ret.put("total", files.length());
-            ret.put("durationMs", System.currentTimeMillis() - start);
-            ret.put("files", files);
+            ret.put("folders", catalogDb.getFolders());
             call.resolve(ret);
+        });
+    }
+
+    @PluginMethod
+    public void saveFolders(PluginCall call) {
+        JSArray folders = call.getArray("folders");
+        if (folders == null) { call.reject("Lista de pastas ausente."); return; }
+        executor.execute(() -> {
+            catalogDb.saveFolders(folders);
+            call.resolve();
+        });
+    }
+
+    @PluginMethod
+    public void syncCatalog(PluginCall call) {
+        boolean force = Boolean.TRUE.equals(call.getBoolean("force", false));
+        executor.execute(() -> {
+            JSArray saved = catalogDb.getFolders();
+            List<String> paths = new ArrayList<>();
+            for (int i = 0; i < saved.length(); i++) {
+                org.json.JSONObject f = saved.optJSONObject(i);
+                if (f != null && f.optBoolean("enabled", true)) {
+                    paths.add(f.optString("path"));
+                }
+            }
+            JSObject res = CatalogIndexer.syncFolders(catalogDb, paths, force);
+            call.resolve(res);
+        });
+    }
+
+    @PluginMethod
+    public void getCatalog(PluginCall call) {
+        executor.execute(() -> {
+            JSObject ret = new JSObject();
+            ret.put("modules", catalogDb.getAllModules());
+            call.resolve(ret);
+        });
+    }
+
+    @PluginMethod
+    public void setModuleFavorite(PluginCall call) {
+        String id = call.getString("id");
+        boolean fav = Boolean.TRUE.equals(call.getBoolean("favorite", false));
+        if (id == null) { call.reject("ID ausente."); return; }
+        executor.execute(() -> {
+            catalogDb.setFavorite(id, fav);
+            call.resolve();
+        });
+    }
+
+    @PluginMethod
+    public void buildCoverageMap(PluginCall call) {
+        executor.execute(() -> call.resolve(CatalogIndexer.buildCoverageForPending(catalogDb)));
+    }
+
+    @PluginMethod
+    public void getCoverageForBook(PluginCall call) {
+        Integer bookId = call.getInt("bookId");
+        String type = call.getString("type", "");
+        if (bookId == null) { call.reject("bookId obrigatório."); return; }
+        executor.execute(() -> {
+            JSObject ret = new JSObject();
+            ret.put("modules", catalogDb.getModulesForBook(bookId, type));
+            call.resolve(ret);
+        });
+    }
+
+    @PluginMethod
+    public void getModuleSets(PluginCall call) {
+        executor.execute(() -> {
+            JSObject ret = new JSObject();
+            ret.put("sets", catalogDb.getModuleSets());
+            call.resolve(ret);
+        });
+    }
+
+    @PluginMethod
+    public void saveModuleSet(PluginCall call) {
+        String id = call.getString("id");
+        String name = call.getString("name");
+        String idsJson = call.getString("moduleIdsJson", "[]");
+        int sortOrder = call.getInt("sortOrder", 0);
+        if (id == null || name == null) { call.reject("id e name obrigatórios."); return; }
+        executor.execute(() -> {
+            catalogDb.saveModuleSet(id, name, idsJson, sortOrder);
+            call.resolve();
+        });
+    }
+
+    @PluginMethod
+    public void deleteModuleSet(PluginCall call) {
+        String id = call.getString("id");
+        if (id == null) { call.reject("id obrigatório."); return; }
+        executor.execute(() -> {
+            catalogDb.deleteModuleSet(id);
+            call.resolve();
         });
     }
 
     @PluginMethod
     public void inspectSqliteModule(PluginCall call) {
         String path = call.getString("path");
-        if (path == null || path.isEmpty()) {
-            call.reject("Caminho do arquivo ausente.");
-            return;
-        }
+        if (path == null || path.isEmpty()) { call.reject("Caminho ausente."); return; }
         executor.execute(() -> {
             long start = System.currentTimeMillis();
             try {
                 SQLiteDatabase db = getReadOnlyDb(path);
                 JSArray tables = new JSArray();
-                try (Cursor c = db.rawQuery(
-                        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name", null)) {
-                    while (c.moveToNext()) {
-                        tables.put(c.getString(0));
-                    }
+                try (Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name", null)) {
+                    while (c.moveToNext()) tables.put(c.getString(0));
                 }
                 JSObject ret = new JSObject();
                 ret.put("path", path);
@@ -177,17 +247,12 @@ public class BibleEnginePlugin extends Plugin {
         String path = call.getString("path");
         String sql = call.getString("sql");
         JSArray argsArr = call.getArray("args");
-
-        if (path == null || sql == null) {
-            call.reject("Parâmetros path e sql são obrigatórios.");
-            return;
-        }
+        if (path == null || sql == null) { call.reject("path e sql obrigatórios."); return; }
         String check = sql.trim().toUpperCase(Locale.ROOT);
         if (!check.startsWith("SELECT") && !check.startsWith("PRAGMA")) {
-            call.reject("Apenas consultas SELECT ou PRAGMA são permitidas nos módulos.");
+            call.reject("Apenas SELECT/PRAGMA permitidos.");
             return;
         }
-
         executor.execute(() -> {
             long start = System.currentTimeMillis();
             try {
@@ -195,9 +260,7 @@ public class BibleEnginePlugin extends Plugin {
                 String[] args = null;
                 if (argsArr != null && argsArr.length() > 0) {
                     args = new String[argsArr.length()];
-                    for (int i = 0; i < argsArr.length(); i++) {
-                        args[i] = argsArr.getString(i);
-                    }
+                    for (int i = 0; i < argsArr.length(); i++) args[i] = argsArr.getString(i);
                 }
                 JSArray rows = new JSArray();
                 try (Cursor c = db.rawQuery(sql, args)) {
@@ -205,18 +268,14 @@ public class BibleEnginePlugin extends Plugin {
                     while (c.moveToNext()) {
                         JSObject row = new JSObject();
                         for (int i = 0; i < cols.length; i++) {
-                            int type = c.getType(i);
-                            if (type == Cursor.FIELD_TYPE_NULL) {
-                                row.put(cols[i], null);
-                            } else if (type == Cursor.FIELD_TYPE_INTEGER) {
-                                row.put(cols[i], c.getLong(i));
-                            } else if (type == Cursor.FIELD_TYPE_FLOAT) {
-                                row.put(cols[i], c.getDouble(i));
-                            } else if (type == Cursor.FIELD_TYPE_STRING) {
-                                row.put(cols[i], c.getString(i));
-                            } else if (type == Cursor.FIELD_TYPE_BLOB) {
-                                byte[] blob = c.getBlob(i);
-                                row.put(cols[i], "[BLOB " + (blob != null ? blob.length : 0) + " bytes]");
+                            int t = c.getType(i);
+                            if (t == Cursor.FIELD_TYPE_NULL) row.put(cols[i], null);
+                            else if (t == Cursor.FIELD_TYPE_INTEGER) row.put(cols[i], c.getLong(i));
+                            else if (t == Cursor.FIELD_TYPE_FLOAT) row.put(cols[i], c.getDouble(i));
+                            else if (t == Cursor.FIELD_TYPE_STRING) row.put(cols[i], c.getString(i));
+                            else if (t == Cursor.FIELD_TYPE_BLOB) {
+                                byte[] b = c.getBlob(i);
+                                row.put(cols[i], "[BLOB " + (b != null ? b.length : 0) + " bytes]");
                             }
                         }
                         rows.put(row);
@@ -228,7 +287,7 @@ public class BibleEnginePlugin extends Plugin {
                 ret.put("rows", rows);
                 call.resolve(ret);
             } catch (Exception e) {
-                call.reject("Erro na consulta SQL: " + e.getMessage());
+                call.reject("Erro SQL: " + e.getMessage());
             }
         });
     }
@@ -243,6 +302,7 @@ public class BibleEnginePlugin extends Plugin {
             }
             dbPool.clear();
         }
+        if (catalogDb != null) catalogDb.close();
         executor.shutdownNow();
         super.handleOnDestroy();
     }
