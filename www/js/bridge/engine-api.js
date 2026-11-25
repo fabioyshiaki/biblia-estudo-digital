@@ -81,5 +81,21 @@ export const engineApi = {
 
   readTheWordChapter(path, bookId, chapter) {
     return target.readTheWordChapter({ path, bookId, chapter });
+  },
+
+  getEpubInfo(path) {
+    return target.getEpubInfo({ path });
+  },
+
+  readEpubChapter(path, chapterIndex) {
+    return target.readEpubChapter({ path, chapterIndex });
+  },
+
+  getPdfInfo(path) {
+    return target.getPdfInfo({ path });
+  },
+
+  renderPdfPage(path, pageIndex, maxWidth = 1400) {
+    return target.renderPdfPage({ path, pageIndex, maxWidth });
   }
 };
