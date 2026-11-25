@@ -133,6 +133,10 @@ select.ui-select {
   background: var(--accent-soft);
   padding: 1px 6px;
   border-radius: 4px;
+  max-width: 112px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   flex-shrink: 0;
 }
 
