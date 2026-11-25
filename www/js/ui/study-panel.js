@@ -4,6 +4,9 @@ import { getBookById, formatRef } from '../core/canon.js';
 import { catalogRepo } from '../library/catalog-repo.js';
 import { moduleReader } from '../formats/module-reader.js';
 import { bookReaderPane } from './book-reader-pane.js';
+import { notesPanel } from './notes-panel.js';
+import { searchPanel } from './search-panel.js';
+import { aiPanel } from './ai-panel.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -282,16 +285,18 @@ async function renderActiveTab(overrideDictQuery = null) {
 
   const token = ++renderToken;
   const tab = store.state.studyTab;
+  const hooks = {
+    isStale: () => token !== renderToken,
+    requestRefresh: () => renderActiveTab()
+  };
 
   if (tab === 'resource-guide') await renderResourceGuide(token);
   else if (tab === 'commentary') await renderCommentaryTab(token);
   else if (tab === 'dictionary') await renderDictionaryTab(token, overrideDictQuery);
-  else if (tab === 'book') {
-    await bookReaderPane.render($('study-subbar'), $('study-body'), {
-      isStale: () => token !== renderToken,
-      requestRefresh: () => renderActiveTab()
-    });
-  }
+  else if (tab === 'book') await bookReaderPane.render($('study-subbar'), $('study-body'), hooks);
+  else if (tab === 'notes') await notesPanel.render($('study-subbar'), $('study-body'), hooks);
+  else if (tab === 'search') await searchPanel.render($('study-subbar'), $('study-body'), hooks);
+  else if (tab === 'ai') await aiPanel.render($('study-subbar'), $('study-body'), hooks);
 }
 
 function handleStudyBodyClick(e) {
@@ -316,7 +321,10 @@ export const studyPanel = {
     $('study-body').addEventListener('click', handleStudyBodyClick);
 
     events.on('nav:goto', () => {
-      if (store.state.studyTab !== 'book') renderActiveTab();
+      const tab = store.state.studyTab;
+      if (tab === 'resource-guide' || tab === 'commentary' || tab === 'notes') {
+        renderActiveTab();
+      }
     });
     events.on('study:changed', () => renderActiveTab());
     events.on('study:verse-focused', () => {
@@ -324,6 +332,27 @@ export const studyPanel = {
       if (store.state.studyTab === 'resource-guide') renderActiveTab();
     });
     events.on('study:lookup-dict', ({ term }) => renderActiveTab(term));
+    events.on('study:open-note-composer', (prefill) => {
+      notesPanel.openComposer(prefill);
+      store.setStudyTab('notes');
+    });
+    events.on('study:open-search', ({ query }) => {
+      searchPanel.setQuery(query);
+      store.setStudyTab('search');
+    });
+    events.on('study:ask-ai', ({ prompt }) => {
+      aiPanel.askAboutPassage(prompt);
+      store.setStudyTab('ai');
+    });
+
+    const refreshIfNotes = () => {
+      if (store.state.studyTab === 'notes') renderActiveTab();
+    };
+    events.on('userdata:notes-changed', refreshIfNotes);
+    events.on('userdata:bookmarks-changed', refreshIfNotes);
+    events.on('userdata:clippings-changed', refreshIfNotes);
+    events.on('userdata:all-changed', refreshIfNotes);
+
     events.on('reader:module-changed', ({ slot }) => {
       if (slot !== 'bible') renderActiveTab();
     });
