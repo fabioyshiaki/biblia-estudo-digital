@@ -449,3 +449,64 @@ html[data-theme="night"] {
   color: var(--accent);
   font-weight: 600;
 }
+/* Onda 2 — Leitor de PDF, EPUB e Modo Noturno Inteligente */
+.study-subbar {
+  flex-wrap: wrap;
+}
+
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pdf-page-input {
+  width: 60px;
+  padding: 6px 8px;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pdf-page-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  transition: filter var(--transition-fast);
+}
+
+.pdf-page-img.pdf-night-mode {
+  filter: invert(0.88) hue-rotate(180deg) contrast(0.96);
+}
+
+.pdf-page-img.pdf-sepia-mode {
+  filter: sepia(0.24) brightness(0.96);
+}
+
+.pdf-footer-nav {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.book-resume-bar {
+  margin-bottom: var(--space-3);
+}
