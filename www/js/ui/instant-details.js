@@ -2,6 +2,7 @@ import { store } from '../core/store.js';
 import { events } from '../core/events.js';
 import { formatRef, parseReference } from '../core/canon.js';
 import { moduleReader } from '../formats/module-reader.js';
+import { userDataRepo, HIGHLIGHT_COLORS } from '../study/user-data-repo.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,11 +35,7 @@ function parseMySwordXref(raw) {
   const clean = String(raw || '').trim();
   const numMatch = clean.match(/^(\d+)\.(\d+)\.(\d+)/);
   if (numMatch) {
-    return {
-      bookId: Number(numMatch[1]),
-      chapter: Number(numMatch[2]),
-      verse: Number(numMatch[3])
-    };
+    return { bookId: Number(numMatch[1]), chapter: Number(numMatch[2]), verse: Number(numMatch[3]) };
   }
   const parsed = parseReference(clean);
   if (!parsed) return null;
@@ -57,10 +54,15 @@ function stripTags(html) {
   return String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function showBar({ head, text, actions = [] }) {
-  const bar = $('instant-details-bar');
-  $('instant-head').textContent = head;
+function showBar({ head, text, extraNode = null, actions = [] }) {
+  const bar = $('instant-details-bar');$('instant-head').textContent = head;
   $('instant-text').textContent = text;
+
+  const extraEl = $('instant-extra');
+  if (extraEl) {
+    extraEl.innerHTML = '';
+    if (extraNode) extraEl.appendChild(extraNode);
+  }
 
   const actionsEl = $('instant-actions');
   actionsEl.innerHTML = '';
@@ -68,7 +70,7 @@ function showBar({ head, text, actions = [] }) {
   for (const act of actions) {
     const btn = document.createElement('button');
     btn.className = act.primary ? 'btn-primary' : 'btn-ghost';
-    btn.style.padding = '6px 10px';
+    btn.style.padding = '5px 9px';
     btn.style.fontSize = '12px';
     btn.textContent = act.label;
     btn.addEventListener('click', act.onClick);
@@ -89,19 +91,66 @@ function hideBar() {
   $('instant-details-bar').classList.add('hidden');
 }
 
+function buildHighlightPalette(bcv, activeColor) {
+  const wrap = document.createElement('div');
+  wrap.className = 'hl-palette';
+
+  const label = document.createElement('span');
+  label.className = 'hl-label';
+  label.textContent = 'Grifar:';
+  wrap.appendChild(label);
+
+  for (const c of HIGHLIGHT_COLORS) {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = `hl-dot hl-dot-${c.id} ${activeColor === c.id ? 'active' : ''}`;
+    dot.title = c.label;
+    dot.addEventListener('click', async () => {
+      const next = activeColor === c.id ? '' : c.id;
+      await userDataRepo.setHighlight(bcv.bookId, bcv.chapter, bcv.verse, next);
+      activeColor = next;
+      wrap.querySelectorAll('.hl-dot').forEach((el) => el.classList.remove('active'));
+      if (next) dot.classList.add('active');
+    });
+    wrap.appendChild(dot);
+  }
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'hl-clear-btn';
+  clearBtn.title = 'Remover grifo';
+  clearBtn.textContent = 'Limpar';
+  clearBtn.addEventListener('click', async () => {
+    await userDataRepo.setHighlight(bcv.bookId, bcv.chapter, bcv.verse, '');
+    activeColor = '';
+    wrap.querySelectorAll('.hl-dot').forEach((el) => el.classList.remove('active'));
+  });
+  wrap.appendChild(clearBtn);
+
+  return wrap;
+}
+
 async function handleStrongClick(code) {
   const dict = pickStrongDictionary();
-  showBar({
-    head: `Strong ${code}${dict ? ` · ${dict.abbr}` : ''}`,
-    text: dict ? 'Consultando dicionário local...' : 'Nenhum dicionário compatível no catálogo.',
-    actions: [{
-      label: 'Abrir Dicionário',
+  const baseActions = [
+    {
+      label: 'Dicionário',
       primary: true,
       onClick: () => {
         store.setStudyTab('dictionary');
         events.emit('study:lookup-dict', { term: code });
       }
-    }]
+    },
+    {
+      label: 'Buscar Ocorrências',
+      onClick: () => events.emit('study:open-search', { query: code })
+    }
+  ];
+
+  showBar({
+    head: `Strong ${code}${dict ? ` · ${dict.abbr}` : ''}`,
+    text: dict ? 'Consultando dicionário local...' : 'Nenhum dicionário compatível no catálogo.',
+    actions: baseActions
   });
 
   if (!dict) return;
@@ -112,17 +161,10 @@ async function handleStrongClick(code) {
     showBar({
       head: `Strong ${code} · ${dict.abbr} (${res.queryMs} ms)`,
       text: preview,
-      actions: [{
-        label: 'Abrir Completo',
-        primary: true,
-        onClick: () => {
-          store.setStudyTab('dictionary');
-          events.emit('study:lookup-dict', { term: code });
-        }
-      }]
+      actions: baseActions
     });
   } catch (err) {
-    showBar({ head: `Strong ${code}`, text: `Erro: ${err.message || err}` });
+    showBar({ head: `Strong ${code}`, text: `Erro: ${err.message || err}`, actions: baseActions });
   }
 }
 
@@ -167,23 +209,68 @@ export const instantDetails = {
       });
     });
 
-    events.on('verse:selected', ({ bcv, text }) => {
+    events.on('verse:selected', ({ bcv, moduleId, text, highlightColor = '' }) => {
       const refText = formatRef({ ...bcv, verseStart: bcv.verse });
+      const activeMod = store.getModuleById(moduleId);
+
       showBar({
         head: refText,
         text: text || '',
+        extraNode: buildHighlightPalette(bcv, highlightColor),
         actions: [
           {
-            label: 'Comentários',
+            label: 'Anotar',
             primary: true,
+            onClick: () => {
+              events.emit('study:open-note-composer', {
+                bookId: bcv.bookId,
+                chapter: bcv.chapter,
+                verseStart: bcv.verse,
+                verseEnd: bcv.verse
+              });
+            }
+          },
+          {
+            label: 'Marcar',
+            onClick: async () => {
+              await userDataRepo.saveBookmark({
+                bookId: bcv.bookId,
+                chapter: bcv.chapter,
+                verse: bcv.verse,
+                label: (text || '').slice(0, 70)
+              });
+              showBar({ head: refText, text: 'Marcador salvo em user_data.db.' });
+            }
+          },
+          {
+            label: 'Recortar',
+            onClick: async () => {
+              await userDataRepo.saveClipping({
+                bookId: bcv.bookId,
+                chapter: bcv.chapter,
+                verse: bcv.verse,
+                sourceTitle: activeMod ? (activeMod.abbr || activeMod.title) : '',
+                excerpt: text || ''
+              });
+              showBar({ head: refText, text: 'Recorte salvo na aba Anotações → Recortes.' });
+            }
+          },
+          {
+            label: 'IA',
+            onClick: () => {
+              events.emit('study:ask-ai', {
+                prompt: `Explique o sentido exegético e o contexto de ${refText}.`
+              });
+            }
+          },
+          {
+            label: 'Com.',
             onClick: () => store.setStudyTab('commentary')
           },
           {
             label: 'Copiar',
             onClick: () => {
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(`${refText} — ${text}`);
-              }
+              if (navigator.clipboard) navigator.clipboard.writeText(`${refText} — ${text}`);
               showBar({ head: refText, text: 'Versículo copiado para a área de transferência.' });
             }
           }
