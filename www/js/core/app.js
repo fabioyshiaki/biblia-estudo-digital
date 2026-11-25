@@ -80,12 +80,12 @@ async function refreshSystemStatus() {
   foldersPanel.renderVolumes();
 
   $('env-badge').textContent = engineApi.isNative
-    ? 'Onda 1 · Leitor Editorial Y700'
-    : 'Onda 1 · Modo Navegador (Simulação)';
+    ? 'v1.0 · Offline-First + IA (Y700)'
+    : 'v1.0 · Modo Navegador (Simulação)';
 
   $('diag-line').textContent =
     `${diag.deviceModel} · Android ${diag.androidVersion} · SQLite ${diag.sqliteVersion} · ` +
-    `FTS5: ${diag.fts5Supported ? 'Ativo' : 'Pendente (sqlite-android)'}`;
+    `FTS4: ${diag.fts5Supported ? 'Ativo' : 'Indisponível'}`;
 
   if (perm.granted && !initialAutoSynced && store.state.modules.length === 0) {
     initialAutoSynced = true;
@@ -107,7 +107,6 @@ async function bootstrap() {
   readerView.init();
   studyPanel.init();
 
-  // Inicializa o histórico de navegação com a referência inicial
   if (store.state.navHistory.length === 0) {
     store.state.navHistory = [{ ...store.state.currentBcv }];
     store.state.navIndex = 0;
@@ -115,7 +114,6 @@ async function bootstrap() {
 
   await catalogRepo.loadInitial();
 
-  // Em retrato no Y700, recolhe a barra lateral da biblioteca quando já há módulos
   if (window.innerWidth < 760 && store.state.modules.length > 0) {
     const sidebar = $('sidebar-pane');
     if (sidebar) sidebar.classList.add('collapsed');
