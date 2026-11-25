@@ -3,6 +3,8 @@ import { mybibleAdapter } from './adapter-mybible.js';
 import { eswordAdapter } from './adapter-esword.js';
 import { thewordTwmAdapter } from './adapter-theword-twm.js';
 import { thewordOntAdapter } from './adapter-theword-ont.js';
+import { epubAdapter } from './adapter-epub.js';
+import { pdfAdapter } from './adapter-pdf.js';
 import { normalizeStrongCode } from './sanitizer.js';
 
 function getAdapter(mod) {
@@ -10,6 +12,8 @@ function getAdapter(mod) {
   if (mod.format === 'mybible') return mybibleAdapter;
   if (mod.format === 'mysword') return myswordAdapter;
   if (mod.format === 'esword') return eswordAdapter;
+  if (mod.format === 'epub') return epubAdapter;
+  if (mod.format === 'pdf') return pdfAdapter;
   if (mod.format === 'theword') {
     if (mod.isSqlite) return thewordTwmAdapter;
     const name = mod.fileName || mod.path || '';
@@ -33,7 +37,7 @@ export const moduleReader = {
 
   async readChapter(mod, bookId, chapter) {
     const adapter = getAdapter(mod);
-    if (!adapter) {
+    if (!adapter || typeof adapter.getChapter !== 'function') {
       throw new Error(`Formato "${mod?.format}" não suportado para leitura bíblica.`);
     }
     return adapter.getChapter(mod, bookId, chapter);
@@ -75,5 +79,19 @@ export const moduleReader = {
       return null;
     }
     return adapter.getBookTopicContent(mod, topicId);
+  },
+
+  async getPdfInfo(mod) {
+    if (!mod || mod.format !== 'pdf') {
+      throw new Error('Módulo informado não é PDF.');
+    }
+    return pdfAdapter.getInfo(mod);
+  },
+
+  async renderPdfPage(mod, pageIndex, maxWidth = 1400) {
+    if (!mod || mod.format !== 'pdf') {
+      throw new Error('Módulo informado não é PDF.');
+    }
+    return pdfAdapter.renderPage(mod, pageIndex, maxWidth);
   }
 };
