@@ -144,4 +144,47 @@ export const webMockDriver = {
       queryMs: 2,
       indexedNow: false,
       verses: [
-        { verse: 1, raw: `Texto simulado
+        { verse: 1, raw: `Texto simulado theWord (.ont) — Livro ${bookId}, Capítulo ${chapter}, Versículo 1.` },
+        { verse: 2, raw: '<FR>Palavras simuladas em destaque<Fr> com <FI>itálico editorial<Fi>.' }
+      ]
+    };
+  },
+
+  async getEpubInfo() {
+    return {
+      title: 'Teologia Sistemática (Simulação)',
+      chapterCount: 2,
+      queryMs: 4,
+      chapters: [
+        { index: 0, title: 'Capítulo 1 — Introdução', href: 'ch1.xhtml' },
+        { index: 1, title: 'Capítulo 2 — Revelação e Escritura', href: 'ch2.xhtml' }
+      ]
+    };
+  },
+
+  async readEpubChapter({ chapterIndex }) {
+    return {
+      index: chapterIndex,
+      title: `Capítulo ${chapterIndex + 1} (Simulação EPUB)`,
+      html: `<p>Conteúdo editorial simulado do capítulo ${chapterIndex + 1} do livro EPUB.</p>`,
+      chapterCount: 2,
+      queryMs: 3
+    };
+  },
+
+  async getPdfInfo() {
+    return { pageCount: 10, queryMs: 5 };
+  },
+
+  async renderPdfPage({ pageIndex }) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1100"><rect width="100%" height="100%" fill="#ffffff"/><text x="60" y="120" font-size="32" fill="#1a1a1a">Página PDF Simulada #${pageIndex + 1}</text></svg>`;
+    return {
+      pageIndex,
+      pageCount: 10,
+      width: 800,
+      height: 1100,
+      dataUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+      queryMs: 6
+    };
+  }
+};
