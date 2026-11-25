@@ -3,13 +3,13 @@ import { events } from '../core/events.js';
 import { getBookById, formatRef } from '../core/canon.js';
 import { catalogRepo } from '../library/catalog-repo.js';
 import { moduleReader } from '../formats/module-reader.js';
+import { bookReaderPane } from './book-reader-pane.js';
 
 const $ = (id) => document.getElementById(id);
 
 let renderToken = 0;
 let commentaryVerseOnly = false;
 let lastDictQuery = '';
-let activeBookTopicId = null;
 
 function getSupportedByType(type) {
   return store.state.modules
@@ -134,7 +134,7 @@ async function renderCommentaryTab(token) {
 
   subbar.innerHTML = '';
   if (list.length === 0) {
-    body.innerHTML = '<p class="empty-state">Nenhum comentário MySword/MyBible encontrado.</p>';
+    body.innerHTML = '<p class="empty-state">Nenhum comentário compatível encontrado.</p>';
     return;
   }
 
@@ -205,7 +205,7 @@ async function renderDictionaryTab(token, overrideQuery = null) {
 
   subbar.innerHTML = '';
   if (list.length === 0) {
-    body.innerHTML = '<p class="empty-state">Nenhum dicionário MySword/MyBible encontrado.</p>';
+    body.innerHTML = '<p class="empty-state">Nenhum dicionário compatível encontrado.</p>';
     return;
   }
 
@@ -276,81 +276,6 @@ async function renderDictionaryTab(token, overrideQuery = null) {
   }
 }
 
-async function renderBookTab(token) {
-  const subbar = $('study-subbar');
-  const body = $('study-body');
-  const list = getSupportedByType('book');
-
-  subbar.innerHTML = '';
-  if (list.length === 0) {
-    body.innerHTML = '<p class="empty-state">Nenhum livro .bok.mybible disponível.</p>';
-    return;
-  }
-
-  let mod = store.getModuleById(store.state.activeBookId);
-  if (!mod || mod.type !== 'book' || !moduleReader.isSupported(mod)) {
-    mod = list[0];
-    store.state.activeBookId = mod.id;
-    store.savePrefs();
-  }
-
-  const sel = createModuleSelect(list, mod.id, (id) => {
-    activeBookTopicId = null;
-    store.setActiveModule('book', id);
-  });
-  subbar.appendChild(sel);
-
-  if (activeBookTopicId !== null) {
-    const backBtn = document.createElement('button');
-    backBtn.className = 'btn-ghost';
-    backBtn.textContent = '← Índice';
-    backBtn.addEventListener('click', () => {
-      activeBookTopicId = null;
-      renderActiveTab();
-    });
-    subbar.appendChild(backBtn);
-
-    body.innerHTML = '<p class="empty-state">Abrindo capítulo do livro...</p>';
-    const topic = await moduleReader.readBookTopic(mod, activeBookTopicId);
-    if (token !== renderToken) return;
-
-    body.innerHTML = '';
-    if (!topic) {
-      body.innerHTML = '<p class="empty-state">Tópico não encontrado.</p>';
-      return;
-    }
-    const head = document.createElement('div');
-    head.className = 'study-entry-head';
-    head.textContent = topic.title;
-    const art = document.createElement('div');
-    art.className = 'study-article';
-    art.innerHTML = topic.html;
-    body.append(head, art);
-    return;
-  }
-
-  body.innerHTML = '<p class="empty-state">Carregando índice do livro...</p>';
-  const res = await moduleReader.listBookTopics(mod, 120, 0);
-  if (token !== renderToken) return;
-
-  body.innerHTML = '';
-  const frag = document.createDocumentFragment();
-  for (const t of res.topics) {
-    const item = document.createElement('div');
-    item.className = 'rg-item';
-    const title = document.createElement('div');
-    title.className = 'vrow-title';
-    title.textContent = t.title;
-    item.appendChild(title);
-    item.addEventListener('click', () => {
-      activeBookTopicId = t.id;
-      renderActiveTab();
-    });
-    frag.appendChild(item);
-  }
-  body.appendChild(frag);
-}
-
 async function renderActiveTab(overrideDictQuery = null) {
   updatePaneVisibility();
   if (store.state.viewMode !== 'reader' || !store.state.studyPaneOpen) return;
@@ -361,7 +286,12 @@ async function renderActiveTab(overrideDictQuery = null) {
   if (tab === 'resource-guide') await renderResourceGuide(token);
   else if (tab === 'commentary') await renderCommentaryTab(token);
   else if (tab === 'dictionary') await renderDictionaryTab(token, overrideDictQuery);
-  else if (tab === 'book') await renderBookTab(token);
+  else if (tab === 'book') {
+    await bookReaderPane.render($('study-subbar'), $('study-body'), {
+      isStale: () => token !== renderToken,
+      requestRefresh: () => renderActiveTab()
+    });
+  }
 }
 
 function handleStudyBodyClick(e) {
@@ -385,7 +315,9 @@ export const studyPanel = {
     $('btn-close-study').addEventListener('click', () => store.setStudyPaneOpen(false));
     $('study-body').addEventListener('click', handleStudyBodyClick);
 
-    events.on('nav:goto', () => renderActiveTab());
+    events.on('nav:goto', () => {
+      if (store.state.studyTab !== 'book') renderActiveTab();
+    });
     events.on('study:changed', () => renderActiveTab());
     events.on('study:verse-focused', () => {
       if (store.state.studyTab === 'commentary' && commentaryVerseOnly) renderActiveTab();
@@ -397,6 +329,11 @@ export const studyPanel = {
     });
     events.on('view:changed', ({ viewMode }) => {
       if (viewMode === 'reader') renderActiveTab();
+    });
+    events.on('theme:changed', () => {
+      if (store.state.studyTab === 'book') {
+        bookReaderPane.refreshThemeOnPdf($('study-body'));
+      }
     });
   }
 };
